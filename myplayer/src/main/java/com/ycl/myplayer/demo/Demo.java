@@ -21,5 +21,5 @@ public class Demo {
     }
 
     public  native String stringFromJNI();
-//    public  native String testFfmpeg();
+    public  native String testFfmpeg();
 }

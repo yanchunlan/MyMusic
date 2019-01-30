@@ -9,6 +9,17 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+
+        // 写这个目的是为了给library 里面的c有提示
+        externalNativeBuild {
+            cmake {
+                cppFlags "-frtti -fexceptions"
+                abiFilters 'armeabi', "x86"
+            }
+        }
+
+
     }
     buildTypes {
         release {
@@ -16,6 +27,16 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+
+    // 写这个目的是为了给library 里面的c有提示
+    externalNativeBuild {
+        cmake {
+            path file('../myplayer/CMakeLists.txt')
+        }
+    }
+
+
 }
 
 dependencies {

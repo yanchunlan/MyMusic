@@ -2,12 +2,13 @@ package com.ycl.mymusic;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.TextView;
 
 import com.ycl.myplayer.demo.Demo;
 
 public class MainActivity extends AppCompatActivity {
-
+    private static final String TAG = "MainActivity";
     private Demo mDemo;
 
     @Override
@@ -19,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         mDemo = new Demo();
-        mDemo.testFfmpeg();
+        Log.d(TAG, "onCreate: "+mDemo.testFfmpeg());
         tv.setText(mDemo.stringFromJNI());
     }
 

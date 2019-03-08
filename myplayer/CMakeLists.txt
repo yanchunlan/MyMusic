@@ -1,12 +1,32 @@
 cmake_minimum_required(VERSION 3.4.1)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNO_CRYPTO")
+# cmakelists 设置c++11  因为在类中对非静态的初始化需要用到
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+if(COMPILER_SUPPORTS_CXX11)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+elseif(COMPILER_SUPPORTS_CXX0X)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+else()
+    message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+
+endif()
+# cmakelists 设置c++11
+
 include_directories(src/main/cpp/include)# 导入include，避免每次都写一长串
 
 # -------------------- start  本地库 ------------------------
 
 add_library( native-lib
              SHARED
-             src/main/cpp/native-lib.cpp )
+             src/main/cpp/native-lib.cpp
+             src/main/cpp/FFmpeg_Audio.cpp
+             src/main/cpp/CallJava.cpp
+             src/main/cpp/Audio.cpp
+             src/main/cpp/Queue.cpp
+        )
 
 target_link_libraries( native-lib
 

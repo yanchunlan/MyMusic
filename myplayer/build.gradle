@@ -12,7 +12,25 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags "-frtti -fexceptions"
-                abiFilters 'armeabi', "x86"
+                abiFilters "armeabi", "x86"
+                // from NDK r17 "armeabi、mips、mips64" not supported
+                /*try {
+                    def ndkWhichExec = ndkWhich.toString().execute() //ndk-which not exists cause exception
+                    def abiOutput = new ByteArrayOutputStream()
+                    ndkWhichExec.waitForProcessOutput(abiOutput, null)
+                    abiOutput = abiOutput.toString().toUpperCase()
+                    if (abiOutput.contains('USAGE:') && abiOutput.contains("ABI")) {
+                        if (abiOutput.contains("'armeabi'")) {
+                            abiFilters 'armeabi'
+                        } else {
+                            abiFilters 'armeabi-v7a'
+                        }
+                    } else {
+                        abiFilters 'armeabi'
+                    }
+                } catch (Exception  e) {
+                    abiFilters 'armeabi'
+                }*/
             }
         }
 

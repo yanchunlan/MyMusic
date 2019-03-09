@@ -26,6 +26,7 @@ add_library( native-lib
              src/main/cpp/CallJava.cpp
              src/main/cpp/Audio.cpp
              src/main/cpp/Queue.cpp
+             src/main/cpp/PlayStatus.cpp
         )
 
 target_link_libraries( native-lib

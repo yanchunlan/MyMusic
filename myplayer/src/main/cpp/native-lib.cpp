@@ -11,6 +11,7 @@ extern "C" {
 JavaVM *javaVM = NULL;
 CallJava *callJava = NULL;
 FFmpeg_Audio *fFmpeg_audio = NULL;
+PlayStatus *playStatus = NULL;
 
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -49,7 +50,7 @@ Java_com_ycl_myplayer_demo_Demo_testFfmpeg(JNIEnv *env, jobject instance) {
 
 // ------------------------ load start -----------------
 extern "C"
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved){
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
     javaVM = vm;
     JNIEnv *env;
     if (vm->GetEnv(reinterpret_cast<void **>(env), JNI_VERSION_1_4) != JNI_OK) {
@@ -80,10 +81,9 @@ Java_com_ycl_myplayer_demo_player_Player_n_1prepared(JNIEnv *env, jobject instan
     const char *source = env->GetStringUTFChars(source_, 0);
 
     if (fFmpeg_audio == NULL) {
-        if (callJava == NULL) {
-            callJava = new CallJava(javaVM, env, instance);
-        }
-        fFmpeg_audio = new FFmpeg_Audio(callJava, source);
+        callJava = new CallJava(javaVM, env, instance);
+        playStatus = new PlayStatus();
+        fFmpeg_audio = new FFmpeg_Audio(playStatus,callJava, source);
         fFmpeg_audio->prepared();
     }
 

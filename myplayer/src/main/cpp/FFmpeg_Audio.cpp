@@ -5,13 +5,15 @@
 
 #include "FFmpeg_Audio.h"
 
-FFmpeg_Audio::FFmpeg_Audio(CallJava *callJava, const char *url) {
+FFmpeg_Audio::FFmpeg_Audio(PlayStatus *playStatus,CallJava *callJava, const char *url) {
+    this->playStatus = playStatus;
     this->url = static_cast<char *>(malloc(512));
     strcpy(this->url, url);
     this->callJava = callJava;
 }
 
 FFmpeg_Audio::~FFmpeg_Audio() {
+//    playStatus = NULL;
 //     callJava = NULL;
 //     uri = NULL;
 //     pthread_decode=NULL;
@@ -51,7 +53,7 @@ void FFmpeg_Audio::decodeFFmpegThread() {
     for (int i = 0; i < avFormatContext->nb_streams; ++i) {
         if (avFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
             if (audio == NULL) {
-                audio = new Audio();
+                audio = new Audio(playStatus);
                 audio->streamIndex = i;
                 audio->codecPar = avFormatContext->streams[i]->codecpar;
             }
@@ -106,8 +108,12 @@ void FFmpeg_Audio::start() {
                 if (LOG_DEBUG) {
                     LOGE("解码第 %d 帧", count);
                 }
-                av_packet_free(&avPacket);
-                av_free(avPacket);
+//                av_packet_free(&avPacket);
+//                av_free(avPacket);
+
+                audio->queue->putAVPacket(avPacket); // 入队
+
+
             } else {
                 av_packet_free(&avPacket);
                 av_free(avPacket);
@@ -116,7 +122,6 @@ void FFmpeg_Audio::start() {
             if(LOG_DEBUG)
             {
                 LOGE("audio is null");
-                return;
             }
             av_packet_free(&avPacket);
             av_free(avPacket);
@@ -124,5 +129,17 @@ void FFmpeg_Audio::start() {
         }
     }
 
+
+    while (audio->queue->getQueueSize() > 0) {
+        AVPacket *avPacket = av_packet_alloc();
+        audio->queue->getAVPacket(avPacket); // 出队
+        av_packet_free(&avPacket);
+        av_free(avPacket);
+        avPacket = NULL;
+    }
+    if(LOG_DEBUG)
+    {
+        LOGE("解码完成");
+    }
 }
 

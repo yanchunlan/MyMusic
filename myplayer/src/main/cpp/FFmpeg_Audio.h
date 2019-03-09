@@ -17,8 +17,10 @@ public:
     pthread_t pthread_decode;
     AVFormatContext *avFormatContext = NULL;
     Audio *audio = NULL;
+    PlayStatus *playStatus = NULL;
 
-    FFmpeg_Audio(CallJava *callJava, const char *url);
+
+    FFmpeg_Audio(PlayStatus *playStatus,CallJava *callJava, const char *url);
 
     virtual ~FFmpeg_Audio();
 

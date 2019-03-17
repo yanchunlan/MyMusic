@@ -5,7 +5,7 @@
 
 #include "FFmpeg_Audio.h"
 
-FFmpeg_Audio::FFmpeg_Audio(PlayStatus *playStatus,CallJava *callJava, const char *url) {
+FFmpeg_Audio::FFmpeg_Audio(PlayStatus *playStatus, CallJava *callJava, const char *url) {
     this->playStatus = playStatus;
     this->url = static_cast<char *>(malloc(512));
     strcpy(this->url, url);
@@ -53,7 +53,7 @@ void FFmpeg_Audio::decodeFFmpegThread() {
     for (int i = 0; i < avFormatContext->nb_streams; ++i) {
         if (avFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
             if (audio == NULL) {
-                audio = new Audio(playStatus);
+                audio = new Audio(playStatus, avFormatContext->streams[i]->codecpar->sample_rate);
                 audio->streamIndex = i;
                 audio->codecPar = avFormatContext->streams[i]->codecpar;
             }
@@ -67,21 +67,21 @@ void FFmpeg_Audio::decodeFFmpegThread() {
     }
     AVCodec *avCodec = avcodec_find_decoder(audio->codecPar->codec_id);
     if (!avCodec) {
-        if(LOG_DEBUG) {
+        if (LOG_DEBUG) {
             LOGE("can not find decoder");
         }
         return;
     }
     audio->avCodecContext = avcodec_alloc_context3(avCodec);
     if (!audio->avCodecContext) {
-        if(LOG_DEBUG) {
+        if (LOG_DEBUG) {
             LOGE("can not alloc new decode_ctx");
         }
         return;
     }
 
     if (avcodec_open2(audio->avCodecContext, avCodec, 0) != 0) {
-        if(LOG_DEBUG) {
+        if (LOG_DEBUG) {
             LOGE("cant not open audio strames");
         }
         return;
@@ -92,15 +92,15 @@ void FFmpeg_Audio::decodeFFmpegThread() {
 
 void FFmpeg_Audio::start() {
     if (audio == NULL) {
-        if(LOG_DEBUG)
-        {
+        if (LOG_DEBUG) {
             LOGE("audio is null");
             return;
         }
     }
+    audio->play();
 
     int count = 0;
-    while (1) {
+    while (playStatus != NULL && !playStatus->exit) {
         AVPacket *avPacket = av_packet_alloc();
         if (av_read_frame(avFormatContext, avPacket) == 0) { // 一帧一帧读取
             if (avPacket->stream_index == audio->streamIndex) {
@@ -110,35 +110,29 @@ void FFmpeg_Audio::start() {
                 }
 //                av_packet_free(&avPacket);
 //                av_free(avPacket);
-
                 audio->queue->putAVPacket(avPacket); // 入队
-
-
             } else {
                 av_packet_free(&avPacket);
                 av_free(avPacket);
             }
         } else {
-            if(LOG_DEBUG)
-            {
+           /* if (LOG_DEBUG) {
                 LOGE("audio is null");
-            }
+            }*/
             av_packet_free(&avPacket);
             av_free(avPacket);
+            while (playStatus != NULL && !playStatus->exit) {
+                if (audio->queue->getQueueSize() > 0) {
+                    continue;
+                } else {
+                    playStatus->exit = true;
+                    break;
+                }
+            }
             break;
         }
     }
-
-
-    while (audio->queue->getQueueSize() > 0) {
-        AVPacket *avPacket = av_packet_alloc();
-        audio->queue->getAVPacket(avPacket); // 出队
-        av_packet_free(&avPacket);
-        av_free(avPacket);
-        avPacket = NULL;
-    }
-    if(LOG_DEBUG)
-    {
+    if (LOG_DEBUG) {
         LOGE("解码完成");
     }
 }

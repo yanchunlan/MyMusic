@@ -6,6 +6,7 @@
 #define MYMUSIC_AUDIO_H
 
 #include "Queue.h"
+#include "CallJava.h"
 
 
 extern "C" {
@@ -24,6 +25,7 @@ public:
 
     Queue *queue = NULL;
     PlayStatus *playStatus = NULL;
+    CallJava *callJava=NULL;
 
     // 重采样
     pthread_t thread_play;
@@ -52,7 +54,7 @@ public:
 
 
 public:
-    Audio(PlayStatus *playStatus, int sample_rate);
+    Audio(PlayStatus *playStatus, int sample_rate,CallJava *callJava);
 
     virtual ~Audio();
 
@@ -63,6 +65,10 @@ public:
     void initOpenSLES();
 
     SLuint32 getCurrentSampleRateForOpensles(int sample_rate);
+
+    void pause();
+
+    void resume();
 
 };
 

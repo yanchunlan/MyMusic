@@ -5,9 +5,10 @@
 #include "Audio.h"
 
 
-Audio::Audio(PlayStatus *playStatus, int sample_rate) {
+Audio::Audio(PlayStatus *playStatus, int sample_rate, CallJava *callJava) {
     this->playStatus = playStatus;
     this->sample_rate = sample_rate;
+    this->callJava = callJava;
     queue = new Queue(playStatus);
     buffer = (uint8_t *) av_malloc(sample_rate * 2 * 2); // 44100 * 2 * (16/8)
 }
@@ -32,6 +33,21 @@ void Audio::play() {
 // 转码，重采样
 int Audio::resampleAudio() {
     while (playStatus != NULL && !playStatus->exit) {
+
+        if (queue->getQueueSize() == 0) {// 代表没数据了
+            // 如果是没有加载中，就设置加载中
+            if (!playStatus->load) {
+                playStatus->load = true;
+                callJava->onCallLoad(CHILD_THREAD, true);// 子线程，加载中
+                continue;
+            } else if (playStatus->load) { // 如果是加载中就去掉加载
+                playStatus->load = false;
+                callJava->onCallLoad(CHILD_THREAD, false);// 子线程，去掉加载中
+                // 去了加载就继续执行
+            }
+        }
+
+
         avPacket = av_packet_alloc();
         if (queue->getAVPacket(avPacket) != 0) {
             av_packet_free(&avPacket);
@@ -90,14 +106,14 @@ int Audio::resampleAudio() {
             int nb = swr_convert(swr_ctx,
                                  &buffer,
                                  avFrame->nb_samples,
-                    (const uint8_t **)(avFrame->data),
+                                 (const uint8_t **) (avFrame->data),
                                  avFrame->nb_samples);
             int out_channels = av_get_channel_layout_nb_channels(AV_CH_LAYOUT_STEREO);
             data_size = nb * out_channels * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
 
-            if (LOG_DEBUG) {
-                LOGE("data_size is %d , nb is %d, out_channels is %d", data_size, nb, out_channels);
-            }
+//            if (LOG_DEBUG) {
+//                LOGE("data_size is %d , nb is %d, out_channels is %d", data_size, nb, out_channels);
+//            }
 
             av_packet_free(&avPacket);
             av_free(avPacket);
@@ -125,7 +141,7 @@ int Audio::resampleAudio() {
 }
 
 
-void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *ctx){
+void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *ctx) {
     Audio *audio = static_cast<Audio *>(ctx);
     if (audio != NULL) {
         // 得到pcm数据  存在audio->buffer里面
@@ -252,4 +268,16 @@ SLuint32 Audio::getCurrentSampleRateForOpensles(int sample_rate) {
             rate = SL_SAMPLINGRATE_44_1;
     }
     return rate;
+}
+
+void Audio::pause() {
+    if (pcmPlayerPlay != NULL) {
+        (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PAUSED);// pause状态
+    }
+}
+
+void Audio::resume() {
+    if (pcmPlayerPlay != NULL) {
+        (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PLAYING);// resume状态
+    }
 }

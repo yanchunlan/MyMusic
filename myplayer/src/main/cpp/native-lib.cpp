@@ -83,7 +83,7 @@ Java_com_ycl_myplayer_demo_player_Player_n_1prepared(JNIEnv *env, jobject instan
     if (fFmpeg_audio == NULL) {
         callJava = new CallJava(javaVM, env, instance);
         playStatus = new PlayStatus();
-        fFmpeg_audio = new FFmpeg_Audio(playStatus,callJava, source);
+        fFmpeg_audio = new FFmpeg_Audio(playStatus, callJava, source);
         fFmpeg_audio->prepared();
     }
 
@@ -95,5 +95,21 @@ JNIEXPORT void JNICALL
 Java_com_ycl_myplayer_demo_player_Player_n_1start(JNIEnv *env, jobject instance) {
     if (fFmpeg_audio != NULL) {
         fFmpeg_audio->start();
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_ycl_myplayer_demo_player_Player_n_1resume(JNIEnv *env, jobject instance) {
+    if (fFmpeg_audio != NULL) {
+        fFmpeg_audio->resume();
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_ycl_myplayer_demo_player_Player_n_1pause(JNIEnv *env, jobject instance) {
+    if (fFmpeg_audio != NULL) {
+        fFmpeg_audio->pause();
     }
 }

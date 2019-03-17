@@ -53,7 +53,9 @@ void FFmpeg_Audio::decodeFFmpegThread() {
     for (int i = 0; i < avFormatContext->nb_streams; ++i) {
         if (avFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
             if (audio == NULL) {
-                audio = new Audio(playStatus, avFormatContext->streams[i]->codecpar->sample_rate);
+                audio = new Audio(playStatus,
+                        avFormatContext->streams[i]->codecpar->sample_rate,
+                        callJava);
                 audio->streamIndex = i;
                 audio->codecPar = avFormatContext->streams[i]->codecpar;
             }
@@ -99,17 +101,15 @@ void FFmpeg_Audio::start() {
     }
     audio->play();
 
-    int count = 0;
+//    int count = 0;
     while (playStatus != NULL && !playStatus->exit) {
         AVPacket *avPacket = av_packet_alloc();
         if (av_read_frame(avFormatContext, avPacket) == 0) { // 一帧一帧读取
             if (avPacket->stream_index == audio->streamIndex) {
-                count++;
-                if (LOG_DEBUG) {
-                    LOGE("解码第 %d 帧", count);
-                }
-//                av_packet_free(&avPacket);
-//                av_free(avPacket);
+//                count++;
+//                if (LOG_DEBUG) {
+//                    LOGE("解码第 %d 帧", count);
+//                }
                 audio->queue->putAVPacket(avPacket); // 入队
             } else {
                 av_packet_free(&avPacket);
@@ -134,6 +134,18 @@ void FFmpeg_Audio::start() {
     }
     if (LOG_DEBUG) {
         LOGE("解码完成");
+    }
+}
+
+void FFmpeg_Audio::pause() {
+    if (audio != NULL) {
+        audio->pause();
+    }
+}
+
+void FFmpeg_Audio::resume() {
+    if (audio != NULL) {
+        audio->resume();
     }
 }
 

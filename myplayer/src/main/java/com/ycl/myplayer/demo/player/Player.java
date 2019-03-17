@@ -2,7 +2,9 @@ package com.ycl.myplayer.demo.player;
 
 import android.text.TextUtils;
 
+import com.ycl.myplayer.demo.listener.OnPauseResumeListener;
 import com.ycl.myplayer.demo.listener.OnPrepareListener;
+import com.ycl.myplayer.demo.listener.OnloadListener;
 import com.ycl.myplayer.demo.log.PlayerLog;
 
 /**
@@ -26,6 +28,8 @@ public class Player {
 
     private String source;
     private OnPrepareListener prepareListener;
+    private OnPauseResumeListener pauseResumeListener;
+    private OnloadListener loadListener;
 
 
     public void setSource(String source) {
@@ -36,17 +40,21 @@ public class Player {
         this.prepareListener = prepareListener;
     }
 
-    public void onCallPrepared() {
-        if (prepareListener != null) {
-            prepareListener.onPrepared();
-        }
+    public void setLoadListener(OnloadListener loadListener) {
+        this.loadListener = loadListener;
     }
+
+    public void setPauseResumeListener(OnPauseResumeListener pauseResumeListener) {
+        this.pauseResumeListener = pauseResumeListener;
+    }
+
 
     public void parpared() {
         if (null == source || TextUtils.isEmpty(source)) {
             PlayerLog.d("source is empty");
             return;
         }
+        onCallLoad(true); // 开始准备就显示加载中
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -68,9 +76,40 @@ public class Player {
         }).start();
     }
 
+    public void pause() {
+        n_pause();
+        if (pauseResumeListener != null) {
+            pauseResumeListener.onPause(true);
+        }
+    }
+
+    public void resume() {
+        n_resume();
+        if (pauseResumeListener != null) {
+            pauseResumeListener.onPause(false);
+        }
+    }
+
+
+    public void onCallPrepared() {
+        if (prepareListener != null) {
+            prepareListener.onPrepared();
+        }
+    }
+
+    public void onCallLoad(boolean load) {
+        if (loadListener != null) {
+            loadListener.onLoad(load);
+        }
+    }
+
 
     private native void n_prepared(String source);
 
     private native void n_start();
+
+    private native void n_resume();
+
+    private native void n_pause();
 
 }

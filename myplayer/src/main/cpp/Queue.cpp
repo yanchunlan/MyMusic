@@ -19,9 +19,9 @@ Queue::~Queue() {
 int Queue::putAVPacket(AVPacket *avPacket) {
     pthread_mutex_lock(&mutexPacket);
     queuePacket.push(avPacket);
-    if (LOG_DEBUG) {
-        LOGD("放入一个AVpacket到队里里面， 个数为：%d", queuePacket.size());
-    }
+//    if (LOG_DEBUG) {
+//        LOGD("放入一个AVpacket到队里里面， 个数为：%d", queuePacket.size());
+//    }
     pthread_cond_signal(&condPacket);  // 主要是get方法没有数据的时候就锁住了，现在放入数据就释放那边的条件锁
     pthread_mutex_unlock(&mutexPacket);
     return 0;
@@ -42,9 +42,9 @@ int Queue::getAVPacket(AVPacket *avPacket) {
             av_free(packet);
             packet = NULL;
 
-            if (LOG_DEBUG) {
-                LOGD("从队列里面取出一个AVpacket，还剩下 %d 个", queuePacket.size());
-            }
+//            if (LOG_DEBUG) {
+//                LOGD("从队列里面取出一个AVpacket，还剩下 %d 个", queuePacket.size());
+//            }
             break;
         } else {
             pthread_cond_wait(&condPacket, &mutexPacket);

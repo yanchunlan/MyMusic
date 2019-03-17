@@ -18,6 +18,7 @@ class CallJava {
     jobject jobj;
 
     jmethodID jmid_prepared;
+    jmethodID jmid_load;
 
 public:
     CallJava(JavaVM *javaVM, JNIEnv *jniEnv, jobject jobj);
@@ -25,6 +26,8 @@ public:
     virtual ~CallJava();
 
     void onCallPrepared(int type);
+
+    void onCallLoad(int type, bool load);
 };
 
 

@@ -19,6 +19,7 @@ class CallJava {
 
     jmethodID jmid_prepared;
     jmethodID jmid_load;
+    jmethodID jmid_timeinfo;
 
 public:
     CallJava(JavaVM *javaVM, JNIEnv *jniEnv, jobject jobj);
@@ -28,6 +29,8 @@ public:
     void onCallPrepared(int type);
 
     void onCallLoad(int type, bool load);
+
+    void onCallTimeInfo(int type, int curr, int total);
 };
 
 

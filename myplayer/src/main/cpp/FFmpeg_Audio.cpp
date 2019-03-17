@@ -58,6 +58,9 @@ void FFmpeg_Audio::decodeFFmpegThread() {
                         callJava);
                 audio->streamIndex = i;
                 audio->codecPar = avFormatContext->streams[i]->codecpar;
+
+                audio->duration = avFormatContext->duration / AV_TIME_BASE; // AV_TIME_BASE = 1000000  1S
+                audio->time_base = avFormatContext->streams[i]->time_base;
             }
         }
     }

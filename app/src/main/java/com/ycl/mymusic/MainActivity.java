@@ -1,6 +1,9 @@
 package com.ycl.mymusic;
 
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -8,8 +11,10 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.ycl.myplayer.demo.Demo;
+import com.ycl.myplayer.demo.TimeInfoBean;
 import com.ycl.myplayer.demo.listener.OnPauseResumeListener;
 import com.ycl.myplayer.demo.listener.OnPrepareListener;
+import com.ycl.myplayer.demo.listener.OnTimeInfoListener;
 import com.ycl.myplayer.demo.listener.OnloadListener;
 import com.ycl.myplayer.demo.log.PlayerLog;
 import com.ycl.myplayer.demo.player.Player;
@@ -24,6 +29,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button mStart;
     private Button mPause;
     private Button mResume;
+    private TextView mTime;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +76,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
         });
+
+        mPlayer.setTimeInfoListener(new OnTimeInfoListener() {
+            @Override
+            public void onTimeInfo(TimeInfoBean timeInfoBean) {
+                PlayerLog.d("currentTime: " + timeInfoBean.getCurrentTime()
+                        + " totalTime: " + timeInfoBean.getTotalTime());
+                if (mHandler != null) {
+                    Message.obtain(mHandler, 1, timeInfoBean).sendToTarget();
+                }
+            }
+        });
     }
 
     private void initView() {
@@ -77,6 +94,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mStart = (Button) findViewById(R.id.start);
         mPause = (Button) findViewById(R.id.pause);
         mResume = (Button) findViewById(R.id.resume);
+        mTime = (TextView) findViewById(R.id.time);
         mStart.setOnClickListener(this);
         mPause.setOnClickListener(this);
         mResume.setOnClickListener(this);
@@ -96,5 +114,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mPlayer.resume();
                 break;
         }
+    }
+
+
+    private Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                if (MainActivity.this.isDestroyed()) {
+                    return;
+                }
+            }
+            if (msg.what == 1) {
+                TimeInfoBean timeInfoBean = (TimeInfoBean) msg.obj;
+                mTime.setText("currentTime: " + timeInfoBean.getCurrentTime() + " totalTime: " + timeInfoBean.getTotalTime());
+            }
+        }
+    };
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mHandler.removeMessages(1);
+        mHandler = null;
     }
 }

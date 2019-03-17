@@ -15,6 +15,15 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <TextView
+        android:id="@+id/time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:text="current：0 totalTime: 0"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/sample_text" />
+
     <Button
         android:id="@+id/start"
         android:layout_width="0dp"
@@ -22,7 +31,7 @@
         android:text="开始"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/sample_text" />
+        app:layout_constraintTop_toBottomOf="@id/time" />
 
     <Button
         android:id="@+id/pause"

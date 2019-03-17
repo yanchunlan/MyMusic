@@ -2,8 +2,10 @@ package com.ycl.myplayer.demo.player;
 
 import android.text.TextUtils;
 
+import com.ycl.myplayer.demo.TimeInfoBean;
 import com.ycl.myplayer.demo.listener.OnPauseResumeListener;
 import com.ycl.myplayer.demo.listener.OnPrepareListener;
+import com.ycl.myplayer.demo.listener.OnTimeInfoListener;
 import com.ycl.myplayer.demo.listener.OnloadListener;
 import com.ycl.myplayer.demo.log.PlayerLog;
 
@@ -30,6 +32,8 @@ public class Player {
     private OnPrepareListener prepareListener;
     private OnPauseResumeListener pauseResumeListener;
     private OnloadListener loadListener;
+    private OnTimeInfoListener timeInfoListener;
+    private static TimeInfoBean timeInfoBean; // 因为存在多线程问题，所以保持静态，单列
 
 
     public void setSource(String source) {
@@ -48,6 +52,9 @@ public class Player {
         this.pauseResumeListener = pauseResumeListener;
     }
 
+    public void setTimeInfoListener(OnTimeInfoListener timeInfoListener) {
+        this.timeInfoListener = timeInfoListener;
+    }
 
     public void parpared() {
         if (null == source || TextUtils.isEmpty(source)) {
@@ -100,6 +107,17 @@ public class Player {
     public void onCallLoad(boolean load) {
         if (loadListener != null) {
             loadListener.onLoad(load);
+        }
+    }
+
+    public void onCallTimeInfo(int currentTime, int totalTime) {
+        if (timeInfoListener != null) {
+            if (timeInfoBean == null) {
+                timeInfoBean = new TimeInfoBean();
+            }
+            timeInfoBean.setCurrentTime(currentTime);
+            timeInfoBean.setTotalTime(totalTime);
+            timeInfoListener.onTimeInfo(timeInfoBean);
         }
     }
 

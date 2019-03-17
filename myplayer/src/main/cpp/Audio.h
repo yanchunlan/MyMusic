@@ -25,7 +25,8 @@ public:
 
     Queue *queue = NULL;
     PlayStatus *playStatus = NULL;
-    CallJava *callJava=NULL;
+    CallJava *callJava = NULL;
+
 
     // 重采样
     pthread_t thread_play;
@@ -35,6 +36,15 @@ public:
     uint8_t *buffer = NULL;
     int data_size = 0;
     int sample_rate = 0; // 可以控制播放器的sample_rate
+
+
+    // 时间计算
+    int duration = 0;
+    AVRational time_base; // 分子分母的方式 存储 time_base 代表时间的某一帧
+    double clock; // 总的播放时长  是递增的
+    double now_time; // 当前frame时间
+    double last_time; // 上一层调用时间
+
 
     // 引擎接口
     SLObjectItf engineObject = NULL;
@@ -54,7 +64,7 @@ public:
 
 
 public:
-    Audio(PlayStatus *playStatus, int sample_rate,CallJava *callJava);
+    Audio(PlayStatus *playStatus, int sample_rate, CallJava *callJava);
 
     virtual ~Audio();
 
@@ -71,7 +81,6 @@ public:
     void resume();
 
 };
-
 
 
 #endif //MYMUSIC_AUDIO_H

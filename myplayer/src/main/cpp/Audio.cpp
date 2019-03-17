@@ -115,6 +115,15 @@ int Audio::resampleAudio() {
 //                LOGE("data_size is %d , nb is %d, out_channels is %d", data_size, nb, out_channels);
 //            }
 
+
+            // 时间计算
+            now_time = avFrame->pts * av_q2d(time_base); //    av_q2d = 分子/分母
+            if (now_time < clock) { // 当前时间不能大于总播放时间  保证递增
+                now_time = clock;
+            }
+            clock = now_time;
+
+
             av_packet_free(&avPacket);
             av_free(avPacket);
             avPacket = NULL;
@@ -147,6 +156,16 @@ void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *ctx) {
         // 得到pcm数据  存在audio->buffer里面
         int bufferSize = audio->resampleAudio();
         if (bufferSize > 0) {
+
+            audio->clock += bufferSize / (double) (audio->sample_rate * 2 * 2);
+
+            // 记录时间是已0.1为基准的，最低移动是0.1的单位，因为时间太多了，最好不要一直回调时间
+            if (audio->clock - audio->last_time >= 0.1) {
+                audio->last_time = audio->clock;
+                // 获取到时间，回调到应用层
+                audio->callJava->onCallTimeInfo(CHILD_THREAD, audio->clock, audio->duration);
+            }
+
             // push pcm数据到播放器
             (*audio->pcmBufferQueue)->Enqueue(
                     audio->pcmBufferQueue,

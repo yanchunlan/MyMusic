@@ -33,14 +33,20 @@ int Audio::resampleAudio() {
 
     data_size = 0; // 初始化为0
     while (playStatus != NULL && !playStatus->exit) {
+        // && 在获取帧的时候也是循环中获取
 
-        if (queue->getQueueSize() == 0) {// 代表没数据了
+        // seek的时候跳出获取帧数据
+        if (playStatus->seek) {
+            av_usleep(1000 * 100);
+            continue;
+        }
+        if (queue->getQueueSize() == 0) {// 还没数据显示的时候，显示加载中
             // 如果是没有加载中，就设置加载中
             if (!playStatus->load) {
                 playStatus->load = true;
                 callJava->onCallLoad(CHILD_THREAD, true);// 子线程，加载中
                 continue;
-            } else if (playStatus->load) { // 如果是加载中就去掉加载
+            } else if (playStatus->load) { // 如果有数据就去除加载中的弹框，并显示播放中
                 playStatus->load = false;
                 callJava->onCallLoad(CHILD_THREAD, false);// 子线程，去掉加载中
                 // 去了加载就继续执行

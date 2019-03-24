@@ -21,6 +21,7 @@ import com.ycl.myplayer.demo.listener.OnTimeInfoListener;
 import com.ycl.myplayer.demo.listener.OnloadListener;
 import com.ycl.myplayer.demo.log.PlayerLog;
 import com.ycl.myplayer.demo.player.Player;
+import com.ycl.myplayer.demo.utils.TimeUtils;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String TAG = "MainActivity";
@@ -165,7 +166,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             if (msg.what == 1) {
                 TimeInfoBean timeInfoBean = (TimeInfoBean) msg.obj;
-                mTime.setText("currentTime: " + timeInfoBean.getCurrentTime() + " totalTime: " + timeInfoBean.getTotalTime());
+                mTime.setText(TimeUtils.secdsToDateFormat(timeInfoBean.getTotalTime(), timeInfoBean.getTotalTime()) + "/" +
+                        TimeUtils.secdsToDateFormat(timeInfoBean.getCurrentTime(), timeInfoBean.getTotalTime()));
             }
         }
     };

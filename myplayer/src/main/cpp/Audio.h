@@ -15,6 +15,7 @@ extern "C" {
 #include <libswresample/swresample.h>
 #include "SLES/OpenSLES.h"
 #include "SLES/OpenSLES_Android.h"
+#include <libavutil/time.h>
 }
 
 class Audio {

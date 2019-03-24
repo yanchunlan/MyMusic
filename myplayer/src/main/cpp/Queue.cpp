@@ -12,9 +12,9 @@ Queue::Queue(PlayStatus *playStatus) {
 
 Queue::~Queue() {
     clearAVPacket();
-//    playStatus = NULL;
-//    pthread_mutex_destroy(&mutexPacket);
-//    pthread_cond_destroy(&condPacket);
+    pthread_mutex_destroy(&mutexPacket);
+    pthread_cond_destroy(&condPacket);
+    playStatus = NULL; // 引用置为null就可以了，不需要销毁
 }
 
 int Queue::putAVPacket(AVPacket *avPacket) {

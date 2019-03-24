@@ -42,7 +42,7 @@ int Audio::resampleAudio() {
             continue;
         }
 
-
+        // load
         if (queue->getQueueSize() == 0) {// 还没数据显示的时候，显示加载中
             // 如果是没有加载中，就设置加载中
             if (!playStatus->load) {

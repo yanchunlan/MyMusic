@@ -35,6 +35,8 @@ public:
 
     void play();
 
+    void release();
+
 };
 
 #endif //MYMUSIC_VIDEO_H

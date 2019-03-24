@@ -254,6 +254,16 @@ void FFmpeg_Audio::release() {
         delete (audio);
         audio = NULL;
     }
+    if(LOG_DEBUG)
+    {
+        LOGE("释放 video");
+    }
+    if (video != NULL) {
+        video->release();
+        delete (video);
+        video = NULL;
+    }
+
 
     if (LOG_DEBUG) {
         LOGE("释放 封装格式上下文");
@@ -287,10 +297,7 @@ void FFmpeg_Audio::release() {
     // ------------ 视频解码相关 start ---------------
 
 
-    if (video != NULL) {
-        delete (video);
-        video = NULL;
-    }
+
     // ------------ 视频解码相关 end ------------------
 
 

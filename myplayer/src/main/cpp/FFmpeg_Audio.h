@@ -44,6 +44,8 @@ public:
     void resume();
 
     void release();
+
+    void seek(int64_t seek); // 长度更长才能seek
 };
 
 

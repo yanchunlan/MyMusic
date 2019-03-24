@@ -77,7 +77,6 @@ public class Player {
             PlayerLog.d("source is empty");
             return;
         }
-        onCallLoad(true); // 开始准备就显示加载中
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -91,12 +90,7 @@ public class Player {
             PlayerLog.d("source is empty");
             return;
         }
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                n_start();
-            }
-        }).start();
+        n_start();
     }
 
     public void pause() {
@@ -171,7 +165,7 @@ public class Player {
         }
     }
 
-    // 开始准备下一个音乐
+    // 只要点击了下一步就执行 stop，在prepared,开始准备下一个音乐
     public void onCallNext() {
         if (playNext) {
             playNext = false;

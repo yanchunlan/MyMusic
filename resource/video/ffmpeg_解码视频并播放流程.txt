@@ -1,0 +1,23 @@
+01. FFmpeg获取视频原始AVPacket
+    通过av_read_frame获取AVMEDIA_TYPE_VIDEO类型的视频帧，存储到
+    视频队列（queue）中。
+
+02. FFmpeg获取视频AVFrame
+        步骤一：
+            AVPacket *avPacket = av_packet_alloc();
+            queue->getAvpacket(avPacket);
+            avcodec_send_packet(avCodecContext, avPacket);
+        步骤二：
+            AVFrame *avFrame = av_frame_alloc();
+            avcodec_receive_frame(avCodecContext, avFrame);
+
+    释放video资源:
+        1、释放队列
+        	delete(queue);
+
+        2、释放解码器上下文
+        avcodec_close(avCodecContext);
+        avcodec_free_context(&avCodecContext);
+
+03.
+

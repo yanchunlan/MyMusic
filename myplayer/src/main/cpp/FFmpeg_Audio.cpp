@@ -85,6 +85,13 @@ void FFmpeg_Audio::decodeFFmpegThread() {
                 audio->time_base = avFormatContext->streams[i]->time_base;
                 duration = audio->duration;
             }
+        } else if (avFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+            if (video == NULL) {
+                video = new Video(playStatus, callJava);
+                video->streamIndex = i;
+                video->codecPar = avFormatContext->streams[i]->codecpar;
+                video->time_base = avFormatContext->streams[i]->time_base;
+            }
         }
     }
     if (audio == NULL) {
@@ -96,57 +103,22 @@ void FFmpeg_Audio::decodeFFmpegThread() {
         pthread_mutex_unlock(&init_mutex);
         return;
     }
-    AVCodec *avCodec = avcodec_find_decoder(audio->codecPar->codec_id);
-    if (!avCodec) {
+    // 初始化 audio->avCodecContext
+    getCodecContext(audio->codecPar, &audio->avCodecContext);
+
+    if (video == NULL) {
         if (LOG_DEBUG) {
-            LOGE("can not find decoder");
+            LOGE("can not find video")
         }
-        callJava->onCallError(CHILD_THREAD, 1003, "can not find decoder");
+        callJava->onCallError(CHILD_THREAD, 1003, "can not find video");
         exit = true;
         pthread_mutex_unlock(&init_mutex);
         return;
     }
-    audio->avCodecContext = avcodec_alloc_context3(avCodec);
-    if (!audio->avCodecContext) {
-        if (LOG_DEBUG) {
-            LOGE("can not alloc new decode_ctx");
-        }
-        callJava->onCallError(CHILD_THREAD, 1004, "can not alloc new decoderctx");
-        exit = true;
-        pthread_mutex_unlock(&init_mutex);
-        return;
-    }
+    // 初始化 video->avCodecContext
+    getCodecContext(video->codecPar, &video->avCodecContext);
 
-    // 音频填充到context里面
-    if (avcodec_parameters_to_context(audio->avCodecContext, audio->codecPar) < 0) {
-        if (LOG_DEBUG) {
-            LOGE("can not fill decoderctx");
-            callJava->onCallError(CHILD_THREAD, 1005, "can not fill decoderctx");
-        }
-        exit = true;
-        pthread_mutex_unlock(&init_mutex);
-        return;
-    }
 
-    if (avcodec_open2(audio->avCodecContext, avCodec, 0) != 0) {
-        if (LOG_DEBUG) {
-            LOGE("cant not open audio strames");
-        }
-        callJava->onCallError(CHILD_THREAD, 1002, "can not open audio streams");
-        exit = true;
-        pthread_mutex_unlock(&init_mutex);
-        return;
-    }
-
-    // 准备完成  防止释放了，还在执行
-   /* if (callJava != NULL) {
-        if (playStatus != NULL && !playStatus->exit) {
-
-        } else {
-            callJava->onCallError(CHILD_THREAD, 1002, "can not find decoder");
-            exit = true;
-        }
-    }*/
     callJava->onCallPrepared(CHILD_THREAD);
     pthread_mutex_unlock(&init_mutex);
 }
@@ -155,19 +127,31 @@ void FFmpeg_Audio::start() {
     if (audio == NULL) {
         if (LOG_DEBUG) {
             LOGE("audio is null");
-            callJava->onCallError(CHILD_THREAD, 1006, "audio is null");
+            callJava->onCallError(CHILD_THREAD, 1008, "audio is null");
             return;
         }
     }
-    audio->play();
+    if (video == NULL) {
+        if (LOG_DEBUG) {
+            LOGE("audio is null");
+            callJava->onCallError(CHILD_THREAD, 1009, "video is null");
+            return;
+        }
+    }
 
-//    int count = 0;
+
+    audio->play();
+    video->play();
+
+
     while (playStatus != NULL && !playStatus->exit) {
         // 设置了seek就继续
         if (playStatus->seek) {
+            av_usleep(1000 * 10); // 在seek的时候，不再解码，需要休眠
             continue;
         }
-        if (audio->queue->getQueueSize() > 40) {//？？
+        if (audio->queue->getQueueSize() > 40) {//直播缓冲区更小，一般的播放器可以设置到100
+            av_usleep(1000 * 10);
             continue;
         }
 
@@ -182,17 +166,20 @@ void FFmpeg_Audio::start() {
         if (ret == 0) { // 一帧一帧读取
             if (avPacket->stream_index == audio->streamIndex) {
                 audio->queue->putAVPacket(avPacket); // 入队
+            } else if (avPacket->stream_index == video->streamIndex) {
+                video->queue->putAVPacket(avPacket); // 入队
             } else {
                 av_packet_free(&avPacket);
                 av_free(avPacket);
                 avPacket = NULL;
             }
-        } else {
+        } else { // 在播放的时候
             av_packet_free(&avPacket);
             av_free(avPacket);
             avPacket = NULL;
             while (playStatus != NULL && !playStatus->exit) {
-                if (audio->queue->getQueueSize() > 0) {
+                if (audio->queue->getQueueSize() > 0) {// 在播放的时候，需要睡眠
+                    av_usleep(1000 * 100);
                     continue;
                 } else {
                     playStatus->exit = true;
@@ -203,7 +190,7 @@ void FFmpeg_Audio::start() {
         }
     }
 
-    // 是不会走到这里来
+    // && 播放完成退出之后就会执行到这里，否则一直在while里面
 
     // 回调完成的监听
     if (callJava != NULL) {
@@ -230,6 +217,8 @@ void FFmpeg_Audio::resume() {
 }
 
 void FFmpeg_Audio::release() {
+
+    // ------------ 音频解码相关 start ---------------
     if (LOG_DEBUG) {
         LOGE("开始释放Ffmpe");
     }
@@ -292,6 +281,20 @@ void FFmpeg_Audio::release() {
         url = NULL;
     }
     pthread_mutex_unlock(&init_mutex);
+    // ------------ 音频解码相关 end ---------------
+
+
+    // ------------ 视频解码相关 start ---------------
+
+
+    if (video != NULL) {
+        delete (video);
+        video = NULL;
+    }
+    // ------------ 视频解码相关 end ------------------
+
+
+
     if (LOG_DEBUG) {
         LOGE("释放 end");
     }
@@ -317,5 +320,53 @@ void FFmpeg_Audio::seek(int64_t secds) {
         playStatus->seek = false; // 继续解码
     }
 
+}
+
+int FFmpeg_Audio::getCodecContext(AVCodecParameters *codecpar, AVCodecContext **avCodecContext) {
+    AVCodec *avCodec = avcodec_find_decoder(codecpar->codec_id);
+    if (!avCodec) {
+        if (LOG_DEBUG) {
+            LOGE("can not find decoder");
+        }
+        callJava->onCallError(CHILD_THREAD, 1004, "can not find decoder");
+        exit = true;
+        pthread_mutex_unlock(&init_mutex);
+        return -1;
+    }
+
+    // 此处返回的值是一级指针，虽然返回了值，但是是付给当前函数了，外部传递进来的还是没有值得
+    // 所以外部传递2级指针，就是它的地址进来，这样就不会被函数改变了
+    *avCodecContext = avcodec_alloc_context3(avCodec);
+    if (!*avCodecContext) {
+        if (LOG_DEBUG) {
+            LOGE("can not alloc new decode_ctx");
+        }
+        callJava->onCallError(CHILD_THREAD, 1005, "can not alloc new decoderctx");
+        exit = true;
+        pthread_mutex_unlock(&init_mutex);
+        return -1;
+    }
+
+    // 音频填充到context里面
+    if (avcodec_parameters_to_context(*avCodecContext, codecpar) < 0) {
+        if (LOG_DEBUG) {
+            LOGE("can not fill decoderctx");
+        }
+        callJava->onCallError(CHILD_THREAD, 1006, "can not fill decoderctx");
+        exit = true;
+        pthread_mutex_unlock(&init_mutex);
+        return -1;
+    }
+
+    if (avcodec_open2(*avCodecContext, avCodec, 0) != 0) {
+        if (LOG_DEBUG) {
+            LOGE("cant not open audio strames");
+        }
+        callJava->onCallError(CHILD_THREAD, 1007, "can not open audio streams");
+        exit = true;
+        pthread_mutex_unlock(&init_mutex);
+        return -1;
+    }
+    return 0;
 }
 

@@ -27,6 +27,7 @@ add_library( native-lib
              src/main/cpp/Audio.cpp
              src/main/cpp/Queue.cpp
              src/main/cpp/PlayStatus.cpp
+             src/main/cpp/Video.cpp
         )
 
 target_link_libraries( native-lib

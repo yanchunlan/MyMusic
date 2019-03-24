@@ -8,6 +8,7 @@
 #include <pty.h>
 #include "CallJava.h"
 #include "Audio.h"
+#include "Video.h"
 #include <pthread.h>
 
 extern "C" {
@@ -22,6 +23,7 @@ public:
     pthread_t pthread_decode;
     AVFormatContext *avFormatContext = NULL; // 存储数据的 context
     Audio *audio = NULL;
+    Video *video = NULL;
     PlayStatus *playStatus = NULL;
 
     // 目的是在停止的时候防止，还未初始化完成 （主要是avformat_network_init 初始化网络会耗时）
@@ -50,6 +52,9 @@ public:
     void release();
 
     void seek(int64_t secds); // 长度更长才能seek
+
+    // avCodecContext 在里面是一个对象，此处传地址进去，就是2级指针，不能是单级指针
+    int getCodecContext(AVCodecParameters *codecpar, AVCodecContext **avCodecContext);
 };
 
 

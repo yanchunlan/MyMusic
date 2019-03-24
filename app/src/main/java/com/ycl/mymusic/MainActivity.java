@@ -21,6 +21,7 @@ import com.ycl.myplayer.demo.listener.OnTimeInfoListener;
 import com.ycl.myplayer.demo.listener.OnloadListener;
 import com.ycl.myplayer.demo.log.PlayerLog;
 import com.ycl.myplayer.demo.player.Player;
+import com.ycl.myplayer.demo.utils.TimeUtils;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String TAG = "MainActivity";
@@ -131,8 +132,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (v.getId()) {
             case R.id.start:
 //              mPlayer.setSource("/storage/emulated/0/1.mp3");
-                mPlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
+//                mPlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
 //                mPlayer.setSource("http://ngcdn004.cnr.cn/live/dszs/index.m3u8");
+                mPlayer.setSource("/storage/emulated/0/input1.mp4");
                 mPlayer.prepared();
                 break;
             case R.id.pause:
@@ -165,7 +167,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             if (msg.what == 1) {
                 TimeInfoBean timeInfoBean = (TimeInfoBean) msg.obj;
-                mTime.setText("currentTime: " + timeInfoBean.getCurrentTime() + " totalTime: " + timeInfoBean.getTotalTime());
+                mTime.setText(TimeUtils.secdsToDateFormat(timeInfoBean.getTotalTime(), timeInfoBean.getTotalTime()) + "/" +
+                        TimeUtils.secdsToDateFormat(timeInfoBean.getCurrentTime(), timeInfoBean.getTotalTime()));
             }
         }
     };

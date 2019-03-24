@@ -34,13 +34,24 @@ int Audio::resampleAudio() {
     data_size = 0; // 初始化为0
     while (playStatus != NULL && !playStatus->exit) {
 
-        if (queue->getQueueSize() == 0) {// 代表没数据了
+        // && 在获取帧的时候也是循环中获取
+
+        // seek的时候跳出获取帧数据
+        if (playStatus->seek) {
+            av_usleep(1000 * 100);
+            continue;
+        }
+
+
+        if (queue->getQueueSize() == 0) {// 还没数据显示的时候，显示加载中
             // 如果是没有加载中，就设置加载中
             if (!playStatus->load) {
                 playStatus->load = true;
                 callJava->onCallLoad(CHILD_THREAD, true);// 子线程，加载中
+
+                av_usleep(1000 * 100);
                 continue;
-            } else if (playStatus->load) { // 如果是加载中就去掉加载
+            } else if (playStatus->load) { // 如果有数据就去除加载中的弹框，并显示播放中
                 playStatus->load = false;
                 callJava->onCallLoad(CHILD_THREAD, false);// 子线程，去掉加载中
                 // 去了加载就继续执行
@@ -221,10 +232,10 @@ void Audio::initOpenSLES() {
     SLDataSink audioSnk = {&loc_outmix, 0};
 
     // 创建播放器  , 此处可以创建多个
-    const SLInterfaceID ids[1] = {SL_IID_BUFFERQUEUE};
-    const SLboolean req[1] = {SL_BOOLEAN_TRUE};
+    const SLInterfaceID ids[2] = {SL_IID_BUFFERQUEUE,SL_IID_PLAYBACKRATE};// SL_IID_PLAYBACKRATE 主要控制采样率，减轻卡顿
+    const SLboolean req[2] = {SL_BOOLEAN_TRUE,SL_BOOLEAN_TRUE};
     result = (*engineEngine)->CreateAudioPlayer(engineEngine, &pcmPlayerObject, &audioSrc,
-                                                &audioSnk, 1, ids, req);
+                                                &audioSnk, 2, ids, req);
     // 实现播放器 得到播放器接口
     (*pcmPlayerObject)->Realize(pcmPlayerObject, SL_BOOLEAN_FALSE);
     (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_PLAY, &pcmPlayerPlay);

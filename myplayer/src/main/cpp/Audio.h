@@ -41,9 +41,9 @@ public:
     // 时间计算
     int duration = 0;
     AVRational time_base; // 分子分母的方式 存储 time_base 代表时间的某一帧
-    double clock; // 总的播放时长  是递增的
+    double clock; // 当前frame的播放时长  是递增的
     double now_time; // 当前frame时间
-    double last_time; // 上一层调用时间
+    double last_time; // 记录最后的时间
 
 
     // 引擎接口
@@ -79,6 +79,10 @@ public:
     void pause();
 
     void resume();
+
+    void stop();
+
+    void release();
 
 };
 

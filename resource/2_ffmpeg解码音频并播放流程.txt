@@ -102,10 +102,26 @@ AVPacket：存放原始音频/视频的压缩包
     *当前AVframe时间：
     	AVRational time_base = pFormatCtx->streams[i]->time_base
     	now_time = frame->pts * av_q2d(time_base); // 当前时间是多少个 time_base
+    	注意：时间必须是递增的，否则会出现异常
 
     *当前播放时间：
     	公式：PCM实际数据大小 / 每秒理论PCM大小；
     	clock += buffersize / ((double)(sample_rate * 2 * 2));
+		
+七.	停止播放释放内存
+
+	1、释放所分配的内存
+		释放顺序：释放队列->释放OpenSL->释放Audio->释放FFmpeg。
+
+	2、处理异常情况
+		比如：数据流还在加载中，就停止播放。
+
+八.  出错回调
+    出错回调：
+    	void onError(int code, String msg);
+
+    在出错回调里面回收资源，并添加变量避免重复调用stop方法。
+
 
 
 

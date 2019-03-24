@@ -113,3 +113,34 @@ Java_com_ycl_myplayer_demo_player_Player_n_1pause(JNIEnv *env, jobject instance)
         fFmpeg_audio->pause();
     }
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_ycl_myplayer_demo_player_Player_n_1stop(JNIEnv *env, jobject instance) {
+    if (fFmpeg_audio != NULL) {
+        fFmpeg_audio->release();
+        delete (fFmpeg_audio);
+        fFmpeg_audio = NULL;
+        if (callJava != NULL) {
+            delete (callJava);
+            callJava = NULL;
+        }
+        if (playStatus != NULL) {
+            delete (playStatus);
+            playStatus = NULL;
+        }
+
+        if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+            LOGE("error %s", "error")
+        }
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_ycl_myplayer_demo_player_Player_n_1seek(JNIEnv *env, jobject instance, jint secds) {
+
+
+}

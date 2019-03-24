@@ -2,6 +2,7 @@ package com.ycl.mymusic;
 
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
@@ -12,6 +13,8 @@ import android.widget.TextView;
 
 import com.ycl.myplayer.demo.Demo;
 import com.ycl.myplayer.demo.TimeInfoBean;
+import com.ycl.myplayer.demo.listener.OnCompleteListener;
+import com.ycl.myplayer.demo.listener.OnErrorListener;
 import com.ycl.myplayer.demo.listener.OnPauseResumeListener;
 import com.ycl.myplayer.demo.listener.OnPrepareListener;
 import com.ycl.myplayer.demo.listener.OnTimeInfoListener;
@@ -27,8 +30,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private TextView mSampleText;
     private Button mStart;
+    private Button mStop;
     private Button mPause;
     private Button mResume;
+    private Button mSeek;
+    private Button mNext;
     private TextView mTime;
 
     @Override
@@ -80,11 +86,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mPlayer.setTimeInfoListener(new OnTimeInfoListener() {
             @Override
             public void onTimeInfo(TimeInfoBean timeInfoBean) {
-                PlayerLog.d("currentTime: " + timeInfoBean.getCurrentTime()
-                        + " totalTime: " + timeInfoBean.getTotalTime());
+//                PlayerLog.d("currentTime: " + timeInfoBean.getCurrentTime()
+//                        + " totalTime: " + timeInfoBean.getTotalTime());
                 if (mHandler != null) {
                     Message.obtain(mHandler, 1, timeInfoBean).sendToTarget();
                 }
+            }
+        });
+
+        mPlayer.setErrorListener(new OnErrorListener() {
+            @Override
+            public void onError(int code, String msg) {
+                PlayerLog.d("code: " + code + " msg: " + msg);
+            }
+        });
+        mPlayer.setCompleteListener(new OnCompleteListener() {
+
+            @Override
+            public void onComplete() {
+                PlayerLog.d(" 播放完成了 onComplete");
             }
         });
     }
@@ -92,26 +112,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void initView() {
         mSampleText = (TextView) findViewById(R.id.sample_text);
         mStart = (Button) findViewById(R.id.start);
+        mStop = (Button) findViewById(R.id.stop);
         mPause = (Button) findViewById(R.id.pause);
         mResume = (Button) findViewById(R.id.resume);
+        mSeek = (Button) findViewById(R.id.seek);
+        mNext = (Button) findViewById(R.id.next);
         mTime = (TextView) findViewById(R.id.time);
         mStart.setOnClickListener(this);
         mPause.setOnClickListener(this);
         mResume.setOnClickListener(this);
+        mStop.setOnClickListener(this);
+        mSeek.setOnClickListener(this);
+        mNext.setOnClickListener(this);
     }
 
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.start:
-                mPlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
-                mPlayer.parpared();
+//              mPlayer.setSource("/storage/emulated/0/1.mp3");
+//                mPlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
+                mPlayer.setSource("http://ngcdn004.cnr.cn/live/dszs/index.m3u8");
+                mPlayer.prepared();
                 break;
             case R.id.pause:
                 mPlayer.pause();
                 break;
             case R.id.resume:
                 mPlayer.resume();
+                break;
+            case R.id.stop:
+                mPlayer.stop();
+                break;
+            case R.id.seek:
+                mPlayer.seek(215);
+                break;
+            case R.id.next:
+                mPlayer.playNext("http://ngcdn004.cnr.cn/live/dszs/index.m3u8");
                 break;
         }
     }

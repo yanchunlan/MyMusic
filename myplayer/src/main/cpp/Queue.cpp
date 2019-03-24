@@ -11,9 +11,10 @@ Queue::Queue(PlayStatus *playStatus) {
 }
 
 Queue::~Queue() {
-    playStatus = NULL;
-    pthread_mutex_destroy(&mutexPacket);
-    pthread_cond_destroy(&condPacket);
+    clearAVPacket();
+//    playStatus = NULL;
+//    pthread_mutex_destroy(&mutexPacket);
+//    pthread_cond_destroy(&condPacket);
 }
 
 int Queue::putAVPacket(AVPacket *avPacket) {
@@ -60,5 +61,19 @@ int Queue::getQueueSize() {
     size = queuePacket.size();
     pthread_mutex_unlock(&mutexPacket);
     return size;
+}
+
+void Queue::clearAVPacket() {
+    //先释放锁，在锁住当前释放的部分，在释放
+    pthread_cond_signal(&condPacket);
+    pthread_mutex_lock(&mutexPacket);
+    while (!queuePacket.empty()) {
+        AVPacket *packet = queuePacket.front(); // 取出数据并释放数据
+        queuePacket.pop();// 弹出数据
+        av_packet_free(&packet);
+        av_free(packet);
+        packet = NULL;
+    }
+    pthread_mutex_unlock(&mutexPacket);
 }
 

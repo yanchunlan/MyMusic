@@ -23,12 +23,18 @@ CallJava::CallJava(JavaVM *javaVM, JNIEnv *jniEnv, jobject jobj) {
 }
 
 CallJava::~CallJava() {
-    jniEnv->DeleteGlobalRef(jobj);
+
+//    if (jobj != NULL) {
+//        jniEnv->DeleteGlobalRef(jobj);
+//        jobj = NULL;
+//    }
+
     javaVM = NULL;
     jniEnv = NULL;
 
-    jobj = NULL;
     jmid_prepared = NULL;
+    jmid_load = NULL;
+    jmid_timeinfo = NULL;
 }
 
 void CallJava::onCallPrepared(int type) {

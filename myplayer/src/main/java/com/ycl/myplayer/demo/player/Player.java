@@ -3,6 +3,8 @@ package com.ycl.myplayer.demo.player;
 import android.text.TextUtils;
 
 import com.ycl.myplayer.demo.TimeInfoBean;
+import com.ycl.myplayer.demo.listener.OnCompleteListener;
+import com.ycl.myplayer.demo.listener.OnErrorListener;
 import com.ycl.myplayer.demo.listener.OnPauseResumeListener;
 import com.ycl.myplayer.demo.listener.OnPrepareListener;
 import com.ycl.myplayer.demo.listener.OnTimeInfoListener;
@@ -29,10 +31,16 @@ public class Player {
     }
 
     private String source;
+    private static boolean playNext = false;
+
     private OnPrepareListener prepareListener;
-    private OnPauseResumeListener pauseResumeListener;
     private OnloadListener loadListener;
+    private OnPauseResumeListener pauseResumeListener;
     private OnTimeInfoListener timeInfoListener;
+    private OnErrorListener errorListener;
+    private OnCompleteListener completeListener;
+
+    //存储返回的当前时间，所有时间
     private static TimeInfoBean timeInfoBean; // 因为存在多线程问题，所以保持静态，单列
 
 
@@ -56,7 +64,15 @@ public class Player {
         this.timeInfoListener = timeInfoListener;
     }
 
-    public void parpared() {
+    public void setErrorListener(OnErrorListener errorListener) {
+        this.errorListener = errorListener;
+    }
+
+    public void setCompleteListener(OnCompleteListener completeListener) {
+        this.completeListener = completeListener;
+    }
+
+    public void prepared() {
         if (null == source || TextUtils.isEmpty(source)) {
             PlayerLog.d("source is empty");
             return;
@@ -97,6 +113,26 @@ public class Player {
         }
     }
 
+    public void stop() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                n_stop();
+            }
+        }).start();
+    }
+
+    public void seek(int seek) {
+        n_seek(seek);
+    }
+
+
+    public void playNext(String url) {
+        this.source = url;
+        playNext = true;
+        stop();
+    }
+
 
     public void onCallPrepared() {
         if (prepareListener != null) {
@@ -121,6 +157,28 @@ public class Player {
         }
     }
 
+    public void onCallError(int code, String msg) {
+        stop();
+        if (errorListener != null) {
+            errorListener.onError(code, msg);
+        }
+    }
+
+    public void onCallComplete() {
+        stop();
+        if (completeListener != null) {
+            completeListener.onComplete();
+        }
+    }
+
+    // 开始准备下一个音乐
+    public void onCallNext() {
+        if (playNext) {
+            playNext = false;
+            prepared();
+        }
+    }
+
 
     private native void n_prepared(String source);
 
@@ -130,4 +188,7 @@ public class Player {
 
     private native void n_pause();
 
+    private native void n_stop();
+
+    private native void n_seek(int secds);
 }

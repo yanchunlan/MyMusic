@@ -14,9 +14,7 @@ Audio::Audio(PlayStatus *playStatus, int sample_rate, CallJava *callJava) {
 }
 
 Audio::~Audio() {
-    playStatus = NULL;
-    free(queue);
-    free(buffer);
+//    release();
 }
 
 
@@ -30,8 +28,10 @@ void Audio::play() {
     pthread_create(&thread_play, NULL, decodePlay, this);
 }
 
-// 转码，重采样
+// 转码，重采样，一直在执行
 int Audio::resampleAudio() {
+
+    data_size = 0; // 初始化为0
     while (playStatus != NULL && !playStatus->exit) {
 
         if (queue->getQueueSize() == 0) {// 代表没数据了
@@ -109,7 +109,9 @@ int Audio::resampleAudio() {
                                  (const uint8_t **) (avFrame->data),
                                  avFrame->nb_samples);
             int out_channels = av_get_channel_layout_nb_channels(AV_CH_LAYOUT_STEREO);
+            // size = 采样个数 * 声道数 * 单个采样点大小
             data_size = nb * out_channels * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
+
 
 //            if (LOG_DEBUG) {
 //                LOGE("data_size is %d , nb is %d, out_channels is %d", data_size, nb, out_channels);
@@ -118,7 +120,7 @@ int Audio::resampleAudio() {
 
             // 时间计算
             now_time = avFrame->pts * av_q2d(time_base); //    av_q2d = 分子/分母
-            if (now_time < clock) { // 当前时间不能大于总播放时间  保证递增
+            if (now_time < clock) { // 当前时间不能大于上一个播放时间  保证递增
                 now_time = clock;
             }
             clock = now_time;
@@ -157,8 +159,8 @@ void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *ctx) {
         int bufferSize = audio->resampleAudio();
         if (bufferSize > 0) {
 
+            // 当前时间+=实际/理论 的偏差
             audio->clock += bufferSize / (double) (audio->sample_rate * 2 * 2);
-
             // 记录时间是已0.1为基准的，最低移动是0.1的单位，因为时间太多了，最好不要一直回调时间
             if (audio->clock - audio->last_time >= 0.1) {
                 audio->last_time = audio->clock;
@@ -298,5 +300,63 @@ void Audio::pause() {
 void Audio::resume() {
     if (pcmPlayerPlay != NULL) {
         (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PLAYING);// resume状态
+    }
+}
+
+void Audio::stop() {
+    if (pcmPlayerPlay != NULL) {
+        (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_STOPPED);// stop状态
+    }
+}
+
+void Audio::release() {
+    if (queue != NULL) {
+        delete (queue); // new 的 需要delete
+        queue = NULL;
+    }
+
+    // ----------------------------- 释放openSLES start  ---------------------
+    // 释放  pcm
+    if (pcmPlayerObject != NULL) {
+        (*pcmPlayerObject)->Destroy(pcmPlayerObject);
+        // 后续都是根据 它 进行置NULL释放
+        pcmPlayerObject = NULL;
+        pcmPlayerPlay = NULL;
+        pcmBufferQueue = NULL;
+    }
+    // 释放 混音器
+    if (outputMixObject != NULL) {
+        (*outputMixObject)->Destroy(outputMixObject);
+        // 后续都是根据 它 进行置NULL释放
+        outputMixObject = NULL;
+        outputMixEnvironmentalReverb = NULL;
+    }
+    // 释放 引擎
+    if (engineObject != NULL) {
+        (*engineObject)->Destroy(engineObject);
+        // 后续都是根据 它 进行置NULL释放
+        engineObject = NULL;
+        engineEngine = NULL;
+    }
+    // ----------------------------- 释放openSLES end  ---------------------
+
+    // 释放数据
+    if (buffer != NULL) {
+        free(buffer);
+        buffer = NULL;
+    }
+    // 释放codecContext , 因为数据是从里面获取的
+    if (avCodecContext != NULL) {
+        avcodec_close(avCodecContext);
+        avcodec_free_context(&avCodecContext);
+        avCodecContext = NULL;
+    }
+
+    //释放回调
+    if (playStatus != NULL) {
+        playStatus = NULL;
+    }
+    if (callJava != NULL) {
+        callJava = NULL;
     }
 }

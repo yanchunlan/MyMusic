@@ -30,6 +30,8 @@ public:
 
     int getQueueSize();
 
+    void clearAVPacket();
+
 };
 
 #endif //MYMUSIC_QUEUE_H

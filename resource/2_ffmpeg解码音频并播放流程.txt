@@ -122,6 +122,25 @@ AVPacket：存放原始音频/视频的压缩包
 
     在出错回调里面回收资源，并添加变量避免重复调用stop方法。
 
+九.  Seek功能和完成播放回调
+    Seek：
+    pthread_mutex_lock(&seek_mutex);
+    int64_t rel = secs * AV_TIME_BASE;
+    avformat_seek_file(pFormatCtx, -1, INT64_MIN, rel, INT64_MAX, 0);
+    pthread_mutex_unlock(&seek_mutex);
+
+    pthread_mutex_lock(&seek_mutex);
+    ret = av_read_frame(pFormatCtx, packet);
+    pthread_mutex_unlock(&seek_mutex);
+
+    完成播放：
+             在最后调用完成接口即可。
+
+十.  播放切换功能
+    原理：
+    在调用stop方法后回调一个函数，然后在函数里面判断是否播放下一个URL。
+
+
 
 
 

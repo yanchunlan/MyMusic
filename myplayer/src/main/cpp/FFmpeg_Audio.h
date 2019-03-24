@@ -28,6 +28,10 @@ public:
     pthread_mutex_t init_mutex; // 这个锁的目的是锁住 初始化 ，保证不会异常
     bool exit = false;
 
+    // seek
+    int duration;
+    pthread_mutex_t seek_mutex; // 锁住帧readFrame
+
 
     FFmpeg_Audio(PlayStatus *playStatus, CallJava *callJava, const char *url);
 
@@ -45,7 +49,7 @@ public:
 
     void release();
 
-    void seek(int64_t seek); // 长度更长才能seek
+    void seek(int64_t secds); // 长度更长才能seek
 };
 
 

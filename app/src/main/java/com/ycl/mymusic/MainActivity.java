@@ -131,8 +131,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (v.getId()) {
             case R.id.start:
 //              mPlayer.setSource("/storage/emulated/0/1.mp3");
-//                mPlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
-                mPlayer.setSource("http://ngcdn004.cnr.cn/live/dszs/index.m3u8");
+                mPlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
+//                mPlayer.setSource("http://ngcdn004.cnr.cn/live/dszs/index.m3u8");
                 mPlayer.prepared();
                 break;
             case R.id.pause:
@@ -145,7 +145,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mPlayer.stop();
                 break;
             case R.id.seek:
-                mPlayer.seek(215);
+                mPlayer.seek(200);
                 break;
             case R.id.next:
                 mPlayer.playNext("http://ngcdn004.cnr.cn/live/dszs/index.m3u8");

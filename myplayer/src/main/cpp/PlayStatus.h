@@ -9,6 +9,7 @@ class PlayStatus {
 public:
     bool exit;
     bool load = true;
+    bool seek = false;
 
 public:
     PlayStatus();

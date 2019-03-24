@@ -12,12 +12,14 @@ FFmpeg_Audio::FFmpeg_Audio(PlayStatus *playStatus, CallJava *callJava, const cha
     strcpy(this->url, url);
     this->callJava = callJava;
 
-    exit = false;
+//    exit = false;
     pthread_mutex_init(&init_mutex, NULL);
+    pthread_mutex_init(&seek_mutex, NULL);
 }
 
 FFmpeg_Audio::~FFmpeg_Audio() {
     pthread_mutex_destroy(&init_mutex); // 关闭锁
+    pthread_mutex_destroy(&seek_mutex); // 关闭锁
 }
 
 void *decodeFFmpeg(void *data) {
@@ -51,7 +53,6 @@ void FFmpeg_Audio::decodeFFmpegThread() {
     avFormatContext->interrupt_callback.callback = avformat_callback;
     avFormatContext->interrupt_callback.opaque = this;
 
-
     if (avformat_open_input(&avFormatContext, url, NULL, NULL) != 0) {
         if (LOG_DEBUG) {
             LOGE("can not open url :%s", url)
@@ -82,13 +83,15 @@ void FFmpeg_Audio::decodeFFmpegThread() {
                 audio->duration =
                         avFormatContext->duration / AV_TIME_BASE; // AV_TIME_BASE = 1000000  1S
                 audio->time_base = avFormatContext->streams[i]->time_base;
+                duration = audio->duration;
             }
         }
     }
     if (audio == NULL) {
         if (LOG_DEBUG) {
-            LOGE("can not find audio streamIndex from %s", url)
+            LOGE("can not find audio")
         }
+        callJava->onCallError(CHILD_THREAD, 1003, "can not find audio");
         exit = true;
         pthread_mutex_unlock(&init_mutex);
         return;
@@ -125,7 +128,6 @@ void FFmpeg_Audio::decodeFFmpegThread() {
         return;
     }
 
-
     if (avcodec_open2(audio->avCodecContext, avCodec, 0) != 0) {
         if (LOG_DEBUG) {
             LOGE("cant not open audio strames");
@@ -161,17 +163,34 @@ void FFmpeg_Audio::start() {
 
 //    int count = 0;
     while (playStatus != NULL && !playStatus->exit) {
+        // 设置了seek就继续
+        if (playStatus->seek) {
+            continue;
+        }
+        if (audio->queue->getQueueSize() > 40) {//？？
+            continue;
+        }
+
+
         AVPacket *avPacket = av_packet_alloc();
-        if (av_read_frame(avFormatContext, avPacket) == 0) { // 一帧一帧读取
+
+        // 读取帧加锁
+        pthread_mutex_lock(&seek_mutex);
+        int ret = av_read_frame(avFormatContext, avPacket);
+        pthread_mutex_unlock(&seek_mutex);
+
+        if (ret == 0) { // 一帧一帧读取
             if (avPacket->stream_index == audio->streamIndex) {
                 audio->queue->putAVPacket(avPacket); // 入队
             } else {
                 av_packet_free(&avPacket);
                 av_free(avPacket);
+                avPacket = NULL;
             }
         } else {
             av_packet_free(&avPacket);
             av_free(avPacket);
+            avPacket = NULL;
             while (playStatus != NULL && !playStatus->exit) {
                 if (audio->queue->getQueueSize() > 0) {
                     continue;
@@ -184,6 +203,12 @@ void FFmpeg_Audio::start() {
         }
     }
 
+    // 是不会走到这里来
+
+    // 回调完成的监听
+    if (callJava != NULL) {
+        callJava->onCallComplete(CHILD_THREAD);
+    }
     //解码完成，就设置true
     exit = true;
 
@@ -272,7 +297,25 @@ void FFmpeg_Audio::release() {
     }
 }
 
-void FFmpeg_Audio::seek(int64_t seek) {
+void FFmpeg_Audio::seek(int64_t secds) {
+    if (duration <= 0) {// 为获取到时间就return
+        return;
+    }
+    if (audio != NULL) {
+        // 开启seek条件,让解码不再继续
+        playStatus->seek = true;
+        audio->queue->clearAVPacket();
+        audio->clock = 0;
+        audio->last_time = 0;
+
+        // 开始设置文件seek位置
+        pthread_mutex_lock(&seek_mutex);
+        int64_t rel = secds * AV_TIME_BASE;//真实地时间
+        avformat_seek_file(avFormatContext, -1, INT64_MIN, rel, INT64_MAX, 0);// seek到那里去
+        pthread_mutex_unlock(&seek_mutex);
+
+        playStatus->seek = false; // 继续解码
+    }
 
 }
 

@@ -9,6 +9,6 @@ import android.util.Log;
  */
 public class PlayerLog {
     public static void d(String msg) {
-        Log.d("ycl", msg);
+        Log.d("ycl123", msg);
     }
 }

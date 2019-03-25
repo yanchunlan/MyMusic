@@ -10,6 +10,7 @@ import com.ycl.myplayer.demo.listener.OnPrepareListener;
 import com.ycl.myplayer.demo.listener.OnTimeInfoListener;
 import com.ycl.myplayer.demo.listener.OnloadListener;
 import com.ycl.myplayer.demo.log.PlayerLog;
+import com.ycl.myplayer.demo.muteenum.MuteEnum;
 
 /**
  * author:  ycl
@@ -31,7 +32,11 @@ public class Player {
     }
 
     private String source;
-    private static boolean playNext = false;
+    private static boolean playNext = false;// 下一首
+
+    private static int duration = -1;
+    private static int volumePercent = 100;
+    private static MuteEnum sMuteEnum = MuteEnum.MUTE_CENTER;
 
     private OnPrepareListener prepareListener;
     private OnloadListener loadListener;
@@ -90,6 +95,10 @@ public class Player {
             PlayerLog.d("source is empty");
             return;
         }
+
+        // 开始之前，设置其最开始的配置
+        setVolume(volumePercent);
+        setMute(sMuteEnum);
         n_start();
     }
 
@@ -108,6 +117,7 @@ public class Player {
     }
 
     public void stop() {
+        // 因为停止音乐是耗时操作，所以添加了线程停止
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -125,6 +135,29 @@ public class Player {
         this.source = url;
         playNext = true;
         stop();
+    }
+
+    public int getDuration() {
+        if (duration < 0) {
+            duration = n_duration();
+        }
+        return duration;
+    }
+
+    public void setVolume(int percent) {
+        if (percent >= 0 && percent <= 100) {
+            volumePercent = percent;
+            n_volume(percent);
+        }
+    }
+
+    public int getVolumePercent() {
+        return volumePercent;
+    }
+
+    public void setMute(MuteEnum mute) {
+        sMuteEnum = mute;
+        n_mute(mute.getValue());
     }
 
 
@@ -185,4 +218,11 @@ public class Player {
     private native void n_stop();
 
     private native void n_seek(int secds);
+
+    private native int  n_duration( );
+
+    private native void n_volume(int percent);
+
+    private native void n_mute(int mute);
+
 }

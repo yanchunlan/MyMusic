@@ -23,42 +23,39 @@
 
         <Button
             android:id="@+id/start"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="开始" />
 
         <Button
             android:id="@+id/stop"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="停止" />
 
         <Button
             android:id="@+id/pause"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="暂停" />
 
         <Button
             android:id="@+id/resume"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="恢复" />
 
+        <Button
+            android:id="@+id/next"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="切换" />
     </LinearLayout>
-
-    <Button
-        android:id="@+id/seek"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAllCaps="false"
-        android:text="seek" />
-
-    <Button
-        android:id="@+id/next"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="切换" />
 
     <TextView
         android:id="@+id/time"
@@ -66,4 +63,55 @@
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
         android:text="00:00/00:00" />
+
+    <SeekBar
+        android:id="@+id/seekbar_seek"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp" />
+
+    <TextView
+        android:id="@+id/tv_volume"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="10dp"
+        android:layout_marginTop="20dp"
+        android:text="音量"
+        android:textColor="#222222" />
+
+    <SeekBar
+        android:id="@+id/seekbar_volume"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/left"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="左声道" />
+
+        <Button
+            android:id="@+id/right"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="右声道" />
+
+        <Button
+            android:id="@+id/center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="立体声" />
+    </LinearLayout>
 </LinearLayout>

@@ -29,7 +29,7 @@ public:
     bool exit = false;
 
     // seek
-    int duration;
+    int duration;// 记录总时间，返回到外部
     pthread_mutex_t seek_mutex; // 锁住帧readFrame
 
 
@@ -50,6 +50,10 @@ public:
     void release();
 
     void seek(int64_t secds); // 长度更长才能seek
+
+    void setVolume(int percent);
+
+    void setMute(int mute);
 };
 
 

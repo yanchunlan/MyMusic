@@ -2,13 +2,13 @@ package com.ycl.mymusic;
 
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.ycl.myplayer.demo.Demo;
@@ -20,6 +20,7 @@ import com.ycl.myplayer.demo.listener.OnPrepareListener;
 import com.ycl.myplayer.demo.listener.OnTimeInfoListener;
 import com.ycl.myplayer.demo.listener.OnloadListener;
 import com.ycl.myplayer.demo.log.PlayerLog;
+import com.ycl.myplayer.demo.muteenum.MuteEnum;
 import com.ycl.myplayer.demo.player.Player;
 import com.ycl.myplayer.demo.utils.TimeUtils;
 
@@ -34,30 +35,50 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button mStop;
     private Button mPause;
     private Button mResume;
-    private Button mSeek;
     private Button mNext;
+
     private TextView mTime;
+    private SeekBar mSeekbarSeek; // 进度
+    private TextView mTvVolume;
+    private SeekBar mSeekbarVolume;// 声音
+
+    private Button mLeft;
+    private Button mRight;
+    private Button mCenter;
+
+
+    private int position = 0;
+    private boolean isSeekBar = false; // 控制seekbar 进度控制唯一
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initView();
-        init();
+        initListener();
     }
 
-    private void init() {
+    private void initListener() {
         // 测试
         mDemo = new Demo();
-        Log.d(TAG, "init: " + mDemo.testFfmpeg());
+//        Log.d(TAG, "init: " + mDemo.testFfmpeg());
         mSampleText.setText(mDemo.stringFromJNI());
 
         // 解码
         mPlayer = new Player();
+
+
+        mPlayer.setMute(MuteEnum.MUTE_LEFT);
+
+        mPlayer.setVolume(50);
+        mTvVolume.setText("音量：" + mPlayer.getVolumePercent() + "%");
+        mSeekbarVolume.setProgress(mPlayer.getVolumePercent());
+
+
         mPlayer.setPrepareListener(new OnPrepareListener() {
             @Override
             public void onPrepared() {
-                PlayerLog.d("onPrepared 准备 ok");
+                PlayerLog.d("准备 ok，开始播放声音");
                 mPlayer.start();
             }
         });
@@ -108,6 +129,46 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 PlayerLog.d(" 播放完成了 onComplete");
             }
         });
+
+        mSeekbarSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (mPlayer.getDuration() > 0 && isSeekBar) {
+                    // 根据seekbar百分比占据总时间的多少，设置seek的值
+                    position = mPlayer.getDuration() * progress / 100;
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                isSeekBar = true;
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                PlayerLog.d(  "seek position: " + position);
+                mPlayer.seek(position);
+                isSeekBar = false;
+            }
+        });
+        mSeekbarVolume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                mPlayer.setVolume(progress);
+                mTvVolume.setText("音量：" + mPlayer.getVolumePercent() + "%");
+                PlayerLog.d(  "volume: " + progress);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
     }
 
     private void initView() {
@@ -116,15 +177,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mStop = (Button) findViewById(R.id.stop);
         mPause = (Button) findViewById(R.id.pause);
         mResume = (Button) findViewById(R.id.resume);
-        mSeek = (Button) findViewById(R.id.seek);
         mNext = (Button) findViewById(R.id.next);
         mTime = (TextView) findViewById(R.id.time);
+        mSeekbarSeek = (SeekBar) findViewById(R.id.seekbar_seek);
+        mTvVolume = (TextView) findViewById(R.id.tv_volume);
+        mSeekbarVolume = (SeekBar) findViewById(R.id.seekbar_volume);
+        mLeft = (Button) findViewById(R.id.left);
+        mRight = (Button) findViewById(R.id.right);
+        mCenter = (Button) findViewById(R.id.center);
         mStart.setOnClickListener(this);
         mPause.setOnClickListener(this);
         mResume.setOnClickListener(this);
         mStop.setOnClickListener(this);
-        mSeek.setOnClickListener(this);
         mNext.setOnClickListener(this);
+        mLeft.setOnClickListener(this);
+        mRight.setOnClickListener(this);
+        mCenter.setOnClickListener(this);
     }
 
     @Override
@@ -145,11 +213,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.stop:
                 mPlayer.stop();
                 break;
-            case R.id.seek:
+           /* case R.id.seek:
                 mPlayer.seek(200);
-                break;
+                break;*/
             case R.id.next:
                 mPlayer.playNext("http://ngcdn004.cnr.cn/live/dszs/index.m3u8");
+                break;
+            case R.id.left:
+                mPlayer.setMute(MuteEnum.MUTE_LEFT);
+                break;
+            case R.id.right:
+                mPlayer.setMute(MuteEnum.MUTE_RIGHT);
+                break;
+            case R.id.center:
+                mPlayer.setMute(MuteEnum.MUTE_CENTER);
                 break;
         }
     }

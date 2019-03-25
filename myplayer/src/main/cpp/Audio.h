@@ -46,6 +46,9 @@ public:
     double now_time; // 当前frame时间
     double last_time; // 记录最后的时间
 
+    int volumePercent = 100; // 记录音量，100最大声
+    int mute = 2;// 记录声道 ，2默认立体声
+
 
     // 引擎接口
     SLObjectItf engineObject = NULL;
@@ -59,6 +62,8 @@ public:
     // pcm
     SLObjectItf pcmPlayerObject = NULL;
     SLPlayItf pcmPlayerPlay = NULL;
+    SLVolumeItf pcmVolumeItf = NULL;
+    SLMuteSoloItf pcmMuteSoloItf = NULL;
 
     // 缓冲器队列接口
     SLAndroidSimpleBufferQueueItf pcmBufferQueue = NULL;
@@ -85,6 +90,9 @@ public:
 
     void release();
 
+    void setVolume(int percent);
+
+    void setMute(int mute);
 };
 
 

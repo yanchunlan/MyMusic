@@ -26,6 +26,7 @@ CallJava::CallJava(JavaVM *javaVM, JNIEnv *jniEnv, jobject jobj) {
 
 CallJava::~CallJava() {
 
+//    此处异常可能是因为在子线程里面释放，导致的异常
 //    if (jobj != NULL) {
 //        jniEnv->DeleteGlobalRef(jobj);
 //        jobj = NULL;

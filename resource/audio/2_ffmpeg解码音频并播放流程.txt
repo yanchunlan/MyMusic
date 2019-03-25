@@ -141,6 +141,36 @@ AVPacket：存放原始音频/视频的压缩包
     在调用stop方法后回调一个函数，然后在函数里面判断是否播放下一个URL。
 
 
+############################## 音频高级部分 #############################
+
+一.  音量控制
+    音量控制主要用到了OpenSL ES中的音量控制接口 SLVolumeItf 。
+
+    初始化：
+    (*pcmPlayerObject)->GetInterface( pcmPlayerObject,
+                                                  SL_IID_VOLUME,
+                                                  &pcmPlayerVolume);
+
+    设置音量：
+    (*pcmPlayerVolume)->SetVolumeLevel(
+                    pcmPlayerVolume,
+                    (100 - percent) * -50);
+二.  声道切换
+    声道切换主要用到了OpenSL ES中的声道控制接口 SLMuteSoloItf 。
+
+    初始化：
+    (*pcmPlayerObject)->GetInterface(
+    				pcmPlayerObject,
+    				SL_IID_MUTESOLO,
+    				&pcmPlayPlayerMuteSolo);
+    设置声道：
+    (*pcmPlayPlayerMuteSolo)->SetChannelMute(
+    				pcmPlayPlayerMuteSolo,
+    				1,  //0右声道1左声道
+    				false //声道是否开启
+    				);
+    立体声：左声道右声道都关闭
+
 
 
 

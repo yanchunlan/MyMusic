@@ -172,6 +172,33 @@ JNIEXPORT void JNICALL
 Java_com_ycl_myplayer_demo_player_Player_n_1seek(JNIEnv *env, jobject instance, jint secds) {
 
     if (fFmpeg_audio != NULL) {
+        // jint 传递到c层 是可以自动转换的
         fFmpeg_audio->seek(secds);
+    }
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_ycl_myplayer_demo_player_Player_n_1duration(JNIEnv *env, jobject instance) {
+    if (fFmpeg_audio != NULL) {
+        return fFmpeg_audio->duration;
+    }
+    return -1;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_ycl_myplayer_demo_player_Player_n_1volume(JNIEnv *env, jobject instance, jint percent) {
+
+    if (fFmpeg_audio != NULL) {
+        fFmpeg_audio->setVolume(percent);
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_ycl_myplayer_demo_player_Player_n_1mute(JNIEnv *env, jobject instance, jint mute) {
+    if (fFmpeg_audio != NULL) {
+        fFmpeg_audio->setMute(mute);
     }
 }

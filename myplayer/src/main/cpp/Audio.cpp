@@ -227,19 +227,31 @@ void Audio::initOpenSLES() {
     SLDataSink audioSnk = {&loc_outmix, 0};
 
     // 创建播放器  , 此处可以创建多个
-    const SLInterfaceID ids[1] = {SL_IID_BUFFERQUEUE};
-    const SLboolean req[1] = {SL_BOOLEAN_TRUE};
+    const SLInterfaceID ids[3] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME, SL_IID_MUTESOLO};
+    const SLboolean req[3] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
     result = (*engineEngine)->CreateAudioPlayer(engineEngine, &pcmPlayerObject, &audioSrc,
-                                                &audioSnk, 1, ids, req);
+                                                &audioSnk,3, ids, req);
+
+
     // 实现播放器 得到播放器接口
     (*pcmPlayerObject)->Realize(pcmPlayerObject, SL_BOOLEAN_FALSE);
     (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_PLAY, &pcmPlayerPlay);
 
+    // 获取声音接口
+    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_VOLUME, &pcmVolumeItf);
+    // 获取声道接口
+    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_MUTESOLO, &pcmMuteSoloItf);
+
+
 
     // 注册回调缓冲区 获取缓冲队列接口
-    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_BUFFERQUEUE,
-                                     &pcmBufferQueue);
+    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_BUFFERQUEUE, &pcmBufferQueue);
     (*pcmBufferQueue)->RegisterCallback(pcmBufferQueue, pcmBufferCallBack, this); // 缓冲区回调
+
+
+    setVolume(volumePercent); // 设置默认的声音
+    setMute(mute); // 设置默认的声道
+
 
     //    获取播放状态接口
     (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PLAYING);// 播放状态
@@ -328,6 +340,8 @@ void Audio::release() {
         // 后续都是根据 它 进行置NULL释放
         pcmPlayerObject = NULL;
         pcmPlayerPlay = NULL;
+        pcmVolumeItf = NULL;
+        pcmMuteSoloItf = NULL;
         pcmBufferQueue = NULL;
     }
     // 释放 混音器
@@ -364,5 +378,50 @@ void Audio::release() {
     }
     if (callJava != NULL) {
         callJava = NULL;
+    }
+}
+
+void Audio::setVolume(int percent) {
+    this->volumePercent = percent;
+    if (pcmVolumeItf != NULL) { // 调节音量的算法，小于30的需要再细分，不然改变太大了，听不出来 0-5000 范围
+        if (percent > 30) {
+            (*pcmVolumeItf)->SetVolumeLevel(pcmVolumeItf, (100 - percent) * -20);
+        } else if (percent > 25) {
+            (*pcmVolumeItf)->SetVolumeLevel(pcmVolumeItf, (100 - percent) * -22);
+        } else if (percent > 20) {
+            (*pcmVolumeItf)->SetVolumeLevel(pcmVolumeItf, (100 - percent) * -25);
+        } else if (percent > 15) {
+            (*pcmVolumeItf)->SetVolumeLevel(pcmVolumeItf, (100 - percent) * -28);
+        } else if (percent > 10) {
+            (*pcmVolumeItf)->SetVolumeLevel(pcmVolumeItf, (100 - percent) * -30);
+        } else if (percent > 5) {
+            (*pcmVolumeItf)->SetVolumeLevel(pcmVolumeItf, (100 - percent) * -34);
+        } else if (percent > 3) {
+            (*pcmVolumeItf)->SetVolumeLevel(pcmVolumeItf, (100 - percent) * -37);
+        } else if (percent > 0) {
+            (*pcmVolumeItf)->SetVolumeLevel(pcmVolumeItf, (100 - percent) * -40);
+        } else {
+            (*pcmVolumeItf)->SetVolumeLevel(pcmVolumeItf, (100 - percent) * -100);
+        }
+    }
+}
+
+void Audio::setMute(int mute) {
+    this->mute = mute;
+    if (pcmMuteSoloItf != NULL) {
+        // 0右声道 1左声道，如果都是false 就是立体声
+        if (mute == 0)//right
+        {
+            (*pcmMuteSoloItf)->SetChannelMute(pcmMuteSoloItf, 1, false);
+            (*pcmMuteSoloItf)->SetChannelMute(pcmMuteSoloItf, 0, true);
+        } else if (mute == 1)//left
+        {
+            (*pcmMuteSoloItf)->SetChannelMute(pcmMuteSoloItf, 1, true);
+            (*pcmMuteSoloItf)->SetChannelMute(pcmMuteSoloItf, 0, false);
+        } else if (mute == 2)//center
+        {
+            (*pcmMuteSoloItf)->SetChannelMute(pcmMuteSoloItf, 1, false);
+            (*pcmMuteSoloItf)->SetChannelMute(pcmMuteSoloItf, 0, false);
+        }
     }
 }

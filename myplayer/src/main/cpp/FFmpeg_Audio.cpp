@@ -319,3 +319,15 @@ void FFmpeg_Audio::seek(int64_t secds) {
 
 }
 
+void FFmpeg_Audio::setVolume(int percent) {
+    if (audio != NULL) {
+        audio->setVolume(percent);
+    }
+}
+
+void FFmpeg_Audio::setMute(int mute) {
+    if (audio != NULL) {
+        audio->setMute(mute);
+    }
+}
+

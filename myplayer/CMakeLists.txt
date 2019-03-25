@@ -16,6 +16,8 @@ endif()
 # cmakelists 设置c++11
 
 include_directories(src/main/cpp/include)# 导入include，避免每次都写一长串
+include_directories(src/main/cpp/include/soundtouch/include)
+include_directories(src/main/cpp/include/soundtouch/SoundTouch)
 
 # -------------------- start  本地库 ------------------------
 
@@ -27,6 +29,20 @@ add_library( native-lib
              src/main/cpp/Audio.cpp
              src/main/cpp/Queue.cpp
              src/main/cpp/PlayStatus.cpp
+
+        # soundTouch的源码cpp需要添加进去
+        src/main/cpp/soundtouch/SoundTouch/AAFilter.cpp
+        src/main/cpp/soundtouch/SoundTouch/FIFOSampleBuffer.cpp
+        src/main/cpp/soundtouch/SoundTouch/FIRFilter.cpp
+        src/main/cpp/soundtouch/SoundTouch/cpu_detect_x86.cpp
+        src/main/cpp/soundtouch/SoundTouch/sse_optimized.cpp
+        src/main/cpp/soundtouch/SoundTouch/RateTransposer.cpp
+        src/main/cpp/soundtouch/SoundTouch/SoundTouch.cpp
+        src/main/cpp/soundtouch/SoundTouch/InterpolateCubic.cpp
+        src/main/cpp/soundtouch/SoundTouch/InterpolateLinear.cpp
+        src/main/cpp/soundtouch/SoundTouch/InterpolateShannon.cpp
+        src/main/cpp/soundtouch/SoundTouch/TDStretch.cpp
+        src/main/cpp/soundtouch/SoundTouch/PeakFinder.cpp
         )
 
 target_link_libraries( native-lib

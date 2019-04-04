@@ -129,7 +129,7 @@ int Audio::resampleAudio() {
 //            }
 
 
-            // 时间计算
+            // 时间计算 统一时间，保证递增
             now_time = avFrame->pts * av_q2d(time_base); //    av_q2d = 分子/分母
             if (now_time < clock) { // 当前时间不能大于上一个播放时间  保证递增
                 now_time = clock;

@@ -19,5 +19,76 @@
         avcodec_close(avCodecContext);
         avcodec_free_context(&avCodecContext);
 
-03.
+03.获取YUV数据，并用OpenGLES渲染数据
+    什么是YUV格式？
+        YUV，是一种颜色编码方法。Y表示明亮度，也就是灰度值。U和V则是色度、
+        浓度，作用是描述影像色彩及饱和度，用于指定像素的颜色。
 
+        主要用于电视系统以及模拟视频领域，它将亮度信息（Y）与色彩信息（UV）
+        分离，没有UV信息一样可以显示完整的图像，显示出来将是黑白效果。
+
+    什么是YUV420？
+        YUV420是指：Y : UV = 4 : 1
+    什么是YUV420P？
+        YUV420P是指：YUV的排列方式，先将Y排列完，再将U排列完，最后将
+        V排列完。如：
+        YYYYYYYYYYYYYYYY UUUU VVVV
+
+    FFmpeg中YUV数据：
+        FFmpeg解码出来的视频YUV数据是存储在AVFrame中的data里面，我们以
+        YUV420P为视频数据给OPenGL渲染。
+
+        Y分量：frame->data[0]
+        U分量：frame->data[1]
+        V分量：frame->data[2]
+
+        绝大多数视频都是YUV420P格式的，对于不是YUV420P格式的，我们先将
+        其转换（sws_scale）为YUV420P后再给OPenGL渲染。
+
+    OpenGL ES渲染YUV420P：
+        为什么用OpenGL来处理YUVP颜色格式视频？
+
+        OpenGL中是不能直接渲染YUV数据的，但是我们可以用3个纹理来
+        分别获取Y、U和V的值，然后根据公式：
+
+        r = y + 1.403 * v;
+        g = y - 0.344 * u - 0.714 * v;
+        b = y + 1.770 * u;
+
+        转为rgb颜色格式显示出来。这个转换过程是在GPU中完成的，计算
+        效率比在CPU中计算高很多倍！
+
+    Shader：
+        vertex_shader.glsl：
+
+            attribute vec4 av_Position;
+            attribute vec2 af_Position;
+            varying vec2 v_texPosition;
+            void main() {
+                v_texPosition = af_Position;
+                gl_Position = av_Position;
+            }
+
+            注： attribute 只能在vertex中使用，varying 用于vertex和fragment之间传递值
+
+        fragment_shader.glsl：
+
+            precision mediump float;
+            varying vec2 v_texPosition;
+            uniform sampler2D sampler_y;
+            uniform sampler2D sampler_u;
+            uniform sampler2D sampler_v;
+            void main() {
+                float y,u,v;
+                y = texture2D(sampler_y,v_texPosition).r;
+                u = texture2D(sampler_u,v_texPosition).r- 0.5;
+                v = texture2D(sampler_v,v_texPosition).r- 0.5;
+
+                vec3 rgb;
+                rgb.r = y + 1.403 * v;
+                rgb.g = y - 0.344 * u - 0.714 * v;
+                rgb.b = y + 1.770 * u;
+
+                gl_FragColor = vec4(rgb,1);
+            }
+            注： uniform 用于在application中向vertex和fragment中传递值。

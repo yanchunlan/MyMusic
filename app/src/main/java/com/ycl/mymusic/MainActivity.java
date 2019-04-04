@@ -2,7 +2,6 @@ package com.ycl.mymusic;
 
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
@@ -20,6 +19,7 @@ import com.ycl.myplayer.demo.listener.OnPrepareListener;
 import com.ycl.myplayer.demo.listener.OnTimeInfoListener;
 import com.ycl.myplayer.demo.listener.OnloadListener;
 import com.ycl.myplayer.demo.log.PlayerLog;
+import com.ycl.myplayer.demo.opengl.YUVGLSurfaceView;
 import com.ycl.myplayer.demo.player.Player;
 import com.ycl.myplayer.demo.utils.TimeUtils;
 
@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button mSeek;
     private Button mNext;
     private TextView mTime;
+    private YUVGLSurfaceView mYuvGlSurfaceView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         // 解码
         mPlayer = new Player();
+        mPlayer.setGlSurfaceView(mYuvGlSurfaceView);
         mPlayer.setPrepareListener(new OnPrepareListener() {
             @Override
             public void onPrepared() {
@@ -125,6 +127,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mStop.setOnClickListener(this);
         mSeek.setOnClickListener(this);
         mNext.setOnClickListener(this);
+        mYuvGlSurfaceView = (YUVGLSurfaceView) findViewById(R.id.yuvGlSurfaceView);
+        mYuvGlSurfaceView.setOnClickListener(this);
     }
 
     @Override

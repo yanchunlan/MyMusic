@@ -233,6 +233,7 @@ void FFmpeg_Audio::release() {
 
 
     pthread_mutex_lock(&init_mutex);
+    // 如果没有解码完成，代码还在解码，需要让其执行一段时间通过上面的状态去停止解码
     int sleepCount = 0;
     while (!exit) {
         if (sleepCount > 1000)  // 暂停1s之后在释放，给一个等待的时间

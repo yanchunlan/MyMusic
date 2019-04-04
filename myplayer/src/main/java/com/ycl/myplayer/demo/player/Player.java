@@ -10,6 +10,7 @@ import com.ycl.myplayer.demo.listener.OnPrepareListener;
 import com.ycl.myplayer.demo.listener.OnTimeInfoListener;
 import com.ycl.myplayer.demo.listener.OnloadListener;
 import com.ycl.myplayer.demo.log.PlayerLog;
+import com.ycl.myplayer.demo.opengl.YUVGLSurfaceView;
 
 /**
  * author:  ycl
@@ -30,8 +31,10 @@ public class Player {
         System.loadLibrary("swscale-5");
     }
 
-    private String source;
+    private static String source;
     private static boolean playNext = false;
+    //存储返回的当前时间，所有时间
+    private static TimeInfoBean timeInfoBean; // 因为存在多线程问题，所以保持静态，单列
 
     private OnPrepareListener prepareListener;
     private OnloadListener loadListener;
@@ -39,13 +42,15 @@ public class Player {
     private OnTimeInfoListener timeInfoListener;
     private OnErrorListener errorListener;
     private OnCompleteListener completeListener;
-
-    //存储返回的当前时间，所有时间
-    private static TimeInfoBean timeInfoBean; // 因为存在多线程问题，所以保持静态，单列
+    private YUVGLSurfaceView yuvglSurfaceView;
 
 
     public void setSource(String source) {
         this.source = source;
+    }
+
+    public void setGlSurfaceView(YUVGLSurfaceView yuvglSurfaceView) {
+        this.yuvglSurfaceView = yuvglSurfaceView;
     }
 
     public void setPrepareListener(OnPrepareListener prepareListener) {
@@ -170,6 +175,13 @@ public class Player {
         if (playNext) {
             playNext = false;
             prepared();
+        }
+    }
+
+
+    public void onCallRenderYUV(int w, int h, byte[] y, byte[] u, byte[] v) {
+        if (yuvglSurfaceView != null) {
+            yuvglSurfaceView.setYUVData(w, h, y, u, v);
         }
     }
 

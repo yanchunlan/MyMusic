@@ -12,7 +12,7 @@ FFmpeg_Audio::FFmpeg_Audio(PlayStatus *playStatus, CallJava *callJava, const cha
     strcpy(this->url, url);
     this->callJava = callJava;
 
-//    exit = false;
+    exit = false;
     pthread_mutex_init(&init_mutex, NULL);
     pthread_mutex_init(&seek_mutex, NULL);
 }
@@ -26,7 +26,8 @@ void *decodeFFmpeg(void *data) {
     FFmpeg_Audio *fFmpeg_audio = static_cast<FFmpeg_Audio *>(data);
     fFmpeg_audio->decodeFFmpegThread();
     // 线程执行完成退出线程
-    pthread_exit(&fFmpeg_audio->pthread_decode);
+//    pthread_exit(&fFmpeg_audio->pthread_decode);
+    return 0;
 };
 
 void FFmpeg_Audio::prepared() {
@@ -46,7 +47,8 @@ int avformat_callback(void *ctx) {
 void FFmpeg_Audio::decodeFFmpegThread() {
     pthread_mutex_lock(&init_mutex);
 
-    av_register_all();
+    av_register_all(); // ffmpeg 4.0之后可以省略
+
     avformat_network_init();
     avFormatContext = avformat_alloc_context();
 
@@ -91,6 +93,14 @@ void FFmpeg_Audio::decodeFFmpegThread() {
                 video->streamIndex = i;
                 video->codecPar = avFormatContext->streams[i]->codecpar;
                 video->time_base = avFormatContext->streams[i]->time_base;
+
+                // 设置默认 video 的 defaultDelayTime
+                int num = avFormatContext->streams[i]->avg_frame_rate.num;
+                int den = avFormatContext->streams[i]->avg_frame_rate.den;
+                if (num != 0 && den != 0) {
+                    int fps = num / den; // 25/1
+                    video->defaultDelayTime = 1.0 / fps;
+                }
             }
         }
     }
@@ -119,7 +129,14 @@ void FFmpeg_Audio::decodeFFmpegThread() {
     getCodecContext(video->codecPar, &video->avCodecContext);
 
 
-    callJava->onCallPrepared(CHILD_THREAD);
+    //因为准备完成就会start,如果在此退出，就不應該start的
+    if (callJava != NULL) {
+        if (playStatus != NULL && !playStatus->exit) {
+            callJava->onCallPrepared(CHILD_THREAD);
+        } else {
+            exit = true;
+        }
+    }
     pthread_mutex_unlock(&init_mutex);
 }
 
@@ -139,13 +156,61 @@ void FFmpeg_Audio::start() {
         }
     }
 
+    supportMediaCodec = false;
     video->audio = audio;
 
+    // 判断是硬解码还是软解码
+    char *codecName = reinterpret_cast<char *>((AVCodec *) (video->avCodecContext->codec)->name);
+    if (supportMediaCodec = callJava->onCallIsSupportVideo(codecName)) {
+        // 初始化bsFilter
+        // video -> abs_ctx
+        // video->abs_ctx -> time_base_in
+        LOGE("当前设备支持硬解码当前视频");
+        if (strcasecmp(codecName, "h264") == 0) {
+            bsFilter = av_bsf_get_by_name("h264_mp4toannexb");
+        } else if (strcasecmp(codecName, "h265") == 0) {
+            bsFilter = av_bsf_get_by_name("hevc_mp4toannexb");
+        }
+        if (bsFilter == NULL) {
+            supportMediaCodec = false;
+            goto end;
+        }
+        if (av_bsf_alloc(bsFilter, &video->abs_ctx) != 0) {
+            supportMediaCodec = false;
+            goto end;
+        }
+        if (avcodec_parameters_copy(video->abs_ctx->par_in, video->codecPar) < 0) {
+            supportMediaCodec = false;
+            av_bsf_free(&video->abs_ctx);
+            video->abs_ctx = NULL;
+            goto end;
+        }
+        if (av_bsf_init(video->abs_ctx) != 0) {
+            supportMediaCodec = false;
+            av_bsf_free(&video->abs_ctx);
+            video->abs_ctx = NULL;
+            goto end;
+        }
+        video->abs_ctx->time_base_in = video->time_base;
+    }
+
+    end:
+    if (supportMediaCodec) {
+        // 硬解码初始化
+        video->codecType = CODEC_MEDIACODEC;
+        video->callJava->onCallInitMediaCodec(codecName,
+                                              video->avCodecContext->width,
+                                              video->avCodecContext->height,
+                                              video->avCodecContext->extradata_size,
+                                              video->avCodecContext->extradata_size,
+                                              video->avCodecContext->extradata,
+                                              video->avCodecContext->extradata);
+    }
 
 
+    // 开始解码
     audio->play();
     video->play();
-
 
     while (playStatus != NULL && !playStatus->exit) {
         // 设置了seek就继续
@@ -176,16 +241,20 @@ void FFmpeg_Audio::start() {
                 av_free(avPacket);
                 avPacket = NULL;
             }
-        } else { // 在播放的时候
+        } else {
             av_packet_free(&avPacket);
             av_free(avPacket);
             avPacket = NULL;
             while (playStatus != NULL && !playStatus->exit) {
-                if (audio->queue->getQueueSize() > 0) {// 在播放的时候，需要睡眠
+                if (audio->queue->getQueueSize() > 0) {
                     av_usleep(1000 * 100);
                     continue;
                 } else {
-                    playStatus->exit = true;
+                    // 如果没有seek，就休眠
+                    if (!playStatus->seek) {
+                        av_usleep(1000 * 100);
+                        playStatus->exit = true;
+                    }
                     break;
                 }
             }
@@ -208,12 +277,20 @@ void FFmpeg_Audio::start() {
 }
 
 void FFmpeg_Audio::pause() {
+    if (playStatus != NULL) {
+        playStatus->pause = true;
+    }
+
     if (audio != NULL) {
         audio->pause();
     }
 }
 
 void FFmpeg_Audio::resume() {
+    if (playStatus != NULL) {
+        playStatus->pause = false;
+    }
+
     if (audio != NULL) {
         audio->resume();
     }
@@ -221,7 +298,6 @@ void FFmpeg_Audio::resume() {
 
 void FFmpeg_Audio::release() {
 
-    // ------------ 音频解码相关 start ---------------
     if (LOG_DEBUG) {
         LOGE("开始释放Ffmpe");
     }
@@ -233,6 +309,7 @@ void FFmpeg_Audio::release() {
         LOGE("开始释放Ffmpe2");
     }
     playStatus->exit = true;
+    pthread_join(pthread_decode, NULL); // 退出就柱塞掉当前线程
 
 
     pthread_mutex_lock(&init_mutex);
@@ -258,8 +335,7 @@ void FFmpeg_Audio::release() {
         delete (audio);
         audio = NULL;
     }
-    if(LOG_DEBUG)
-    {
+    if (LOG_DEBUG) {
         LOGE("释放 video");
     }
     if (video != NULL) {
@@ -267,7 +343,9 @@ void FFmpeg_Audio::release() {
         delete (video);
         video = NULL;
     }
-
+    if (bsFilter != NULL) {
+        bsFilter = NULL;
+    }
 
     if (LOG_DEBUG) {
         LOGE("释放 封装格式上下文");
@@ -295,42 +373,45 @@ void FFmpeg_Audio::release() {
         url = NULL;
     }
     pthread_mutex_unlock(&init_mutex);
-    // ------------ 音频解码相关 end ---------------
-
-
-    // ------------ 视频解码相关 start ---------------
-
-
-
-    // ------------ 视频解码相关 end ------------------
-
-
-
     if (LOG_DEBUG) {
         LOGE("释放 end");
     }
 }
 
 void FFmpeg_Audio::seek(int64_t secds) {
-    if (duration <= 0) {// 为获取到时间就return
+    if (duration <= 0) {// 未获取到时间就return
         return;
     }
-    if (audio != NULL) {
+    // 音视频同步seek
+    if (secds >= 0 && secds <= duration) {
         // 开启seek条件,让解码不再继续
         playStatus->seek = true;
-        audio->queue->clearAVPacket();
-        audio->clock = 0;
-        audio->last_time = 0;
-
         // 开始设置文件seek位置
         pthread_mutex_lock(&seek_mutex);
         int64_t rel = secds * AV_TIME_BASE;//真实地时间
+        LOGE("rel time %d , secds time %d", rel, secds);
         avformat_seek_file(avFormatContext, -1, INT64_MIN, rel, INT64_MAX, 0);// seek到那里去
-        pthread_mutex_unlock(&seek_mutex);
 
+        if (audio != NULL) {
+            audio->queue->clearAVPacket();
+            audio->clock = 0;
+            audio->last_time = 0;
+            // flush audio->avCodecContext 里面所有的数据
+            pthread_mutex_lock(&audio->codecMutex);
+            avcodec_flush_buffers(audio->avCodecContext);
+            pthread_mutex_unlock(&audio->codecMutex);
+        }
+        if (video != NULL) {
+            video->queue->clearAVPacket();
+            video->clock = 0;
+            // flush audio->avCodecContext 里面所有的数据
+            pthread_mutex_lock(&video->codecMutex);
+            avcodec_flush_buffers(video->avCodecContext);
+            pthread_mutex_unlock(&video->codecMutex);
+        }
+        pthread_mutex_unlock(&seek_mutex);
         playStatus->seek = false; // 继续解码
     }
-
 }
 
 int FFmpeg_Audio::getCodecContext(AVCodecParameters *codecpar, AVCodecContext **avCodecContext) {

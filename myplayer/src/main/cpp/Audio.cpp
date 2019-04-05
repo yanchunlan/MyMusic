@@ -11,21 +11,26 @@ Audio::Audio(PlayStatus *playStatus, int sample_rate, CallJava *callJava) {
     this->callJava = callJava;
     queue = new Queue(playStatus);
     buffer = (uint8_t *) av_malloc(sample_rate * 2 * 2); // 44100 * 2 * (16/8)
+    pthread_mutex_init(&codecMutex, NULL);
 }
 
 Audio::~Audio() {
 //    release();
+    pthread_mutex_destroy(&codecMutex);
 }
 
 
 void *decodePlay(void *data) {
     Audio *audio = static_cast<Audio *>(data);
     audio->initOpenSLES();
-    pthread_exit(&audio->thread_play);
+//    pthread_exit(&audio->thread_play);
+    return 0;
 };
 
 void Audio::play() {
-    pthread_create(&thread_play, NULL, decodePlay, this);
+    if (playStatus != NULL && !playStatus->exit) {
+        pthread_create(&thread_play, NULL, decodePlay, this);
+    }
 }
 
 // 转码，重采样，一直在执行
@@ -38,6 +43,11 @@ int Audio::resampleAudio() {
 
         // seek的时候跳出获取帧数据
         if (playStatus->seek) {
+            av_usleep(1000 * 100);
+            continue;
+        }
+
+        if (playStatus->pause) {
             av_usleep(1000 * 100);
             continue;
         }
@@ -69,11 +79,13 @@ int Audio::resampleAudio() {
         // 获取到队列的数据了
 
         // packet放到解码器解码
+        pthread_mutex_lock(&codecMutex);
         ret = avcodec_send_packet(avCodecContext, avPacket);
         if (ret != 0) { // error
             av_packet_free(&avPacket);
             av_free(avPacket);
             avPacket = NULL;
+            pthread_mutex_unlock(&codecMutex);
             continue;
         }
 
@@ -110,6 +122,7 @@ int Audio::resampleAudio() {
                 avFrame = NULL;
 
                 swr_free(&swr_ctx);
+                pthread_mutex_unlock(&codecMutex);
                 continue;
             }
 
@@ -123,11 +136,9 @@ int Audio::resampleAudio() {
             // size = 采样个数 * 声道数 * 单个采样点大小
             data_size = nb * out_channels * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
 
-
 //            if (LOG_DEBUG) {
 //                LOGE("data_size is %d , nb is %d, out_channels is %d", data_size, nb, out_channels);
 //            }
-
 
             // 时间计算 统一时间，保证递增
             now_time = avFrame->pts * av_q2d(time_base); //    av_q2d = 分子/分母
@@ -146,6 +157,7 @@ int Audio::resampleAudio() {
             avFrame = NULL;
 
             swr_free(&swr_ctx);
+            pthread_mutex_unlock(&codecMutex);
             break;  // 为什么是break
 
         } else { // 释放
@@ -156,6 +168,7 @@ int Audio::resampleAudio() {
             av_frame_free(&avFrame);
             av_free(avFrame);
             avFrame = NULL;
+            pthread_mutex_unlock(&codecMutex);
             continue;
         }
     }
@@ -321,6 +334,11 @@ void Audio::stop() {
 }
 
 void Audio::release() {
+    if (queue != NULL) {
+        queue->noticeQueue();
+    }
+    pthread_join(thread_play, NULL);
+
     if (queue != NULL) {
         delete (queue); // new 的 需要delete
         queue = NULL;

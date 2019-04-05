@@ -203,10 +203,12 @@ void Video::release() {
         queue->noticeQueue();
     }
     pthread_join(thread_play, NULL);
+
     if (queue != NULL) {
         delete (queue);
         queue = NULL;
     }
+    // 在里面释放，则外部就不再释放，变量一定是在当前类里面释放，其他地方的引用只需要==NULL
     if (abs_ctx != NULL) {
         av_bsf_free(&abs_ctx);
         abs_ctx = NULL;

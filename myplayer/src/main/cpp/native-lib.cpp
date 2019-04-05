@@ -98,8 +98,10 @@ Java_com_ycl_myplayer_demo_player_Player_n_1prepared(JNIEnv *env, jobject instan
 void *startCallBack(void *data) {
     FFmpeg_Audio *fFmpeg = (FFmpeg_Audio *) (data);
     fFmpeg->start();
-    pthread_exit(&pthread_start);
+//    pthread_exit(&pthread_start);
+    return 0;
 }
+
 
 extern "C"
 JNIEXPORT void JNICALL

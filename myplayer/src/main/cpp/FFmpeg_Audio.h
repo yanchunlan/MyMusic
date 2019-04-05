@@ -34,6 +34,9 @@ public:
     int duration;
     pthread_mutex_t seek_mutex; // 锁住帧readFrame
 
+    bool supportMediaCodec = false;
+    const AVBitStreamFilter *bsFilter=NULL;
+
 
     FFmpeg_Audio(PlayStatus *playStatus, CallJava *callJava, const char *url);
 

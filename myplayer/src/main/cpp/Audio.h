@@ -64,6 +64,8 @@ public:
     SLAndroidSimpleBufferQueueItf pcmBufferQueue = NULL;
 
 
+    pthread_mutex_t codecMutex; // 锁住音频解码的sendPacket，frame操作
+
 public:
     Audio(PlayStatus *playStatus, int sample_rate, CallJava *callJava);
 

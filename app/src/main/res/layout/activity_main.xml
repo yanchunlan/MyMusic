@@ -21,6 +21,13 @@
         android:layout_width="match_parent"
         android:layout_height="250dp" />
 
+    <SeekBar
+        android:id="@+id/seekbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -28,44 +35,44 @@
 
         <Button
             android:id="@+id/start"
-            android:layout_height="wrap_content"
             android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="开始" />
 
         <Button
             android:id="@+id/stop"
-            android:layout_height="wrap_content"
             android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="停止" />
 
         <Button
             android:id="@+id/pause"
-            android:layout_height="wrap_content"
             android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="暂停" />
 
         <Button
             android:id="@+id/resume"
-            android:layout_height="wrap_content"
             android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="恢复" />
 
         <Button
             android:id="@+id/seek"
-            android:layout_height="wrap_content"
             android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textAllCaps="false"
-            android:text="seek" />
+            android:text="seek"
+            android:textAllCaps="false" />
 
         <Button
             android:id="@+id/next"
-            android:layout_height="wrap_content"
             android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="切换" />
     </LinearLayout>

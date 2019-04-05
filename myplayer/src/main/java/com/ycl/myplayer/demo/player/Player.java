@@ -1,6 +1,14 @@
 package com.ycl.myplayer.demo.player;
 
+import android.annotation.TargetApi;
+import android.media.MediaCodec;
+import android.media.MediaCodecInfo;
+import android.media.MediaCodecList;
+import android.media.MediaFormat;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.text.TextUtils;
+import android.view.Surface;
 
 import com.ycl.myplayer.demo.TimeInfoBean;
 import com.ycl.myplayer.demo.listener.OnCompleteListener;
@@ -11,6 +19,11 @@ import com.ycl.myplayer.demo.listener.OnTimeInfoListener;
 import com.ycl.myplayer.demo.listener.OnloadListener;
 import com.ycl.myplayer.demo.log.PlayerLog;
 import com.ycl.myplayer.demo.opengl.YUVGLSurfaceView;
+import com.ycl.myplayer.demo.opengl.YUVRender;
+import com.ycl.myplayer.demo.utils.MediaCodecUtils;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
 /**
  * author:  ycl
@@ -35,6 +48,7 @@ public class Player {
     private static boolean playNext = false;
     //存储返回的当前时间，所有时间
     private static TimeInfoBean timeInfoBean; // 因为存在多线程问题，所以保持静态，单列
+    private int duration = 0;
 
     private OnPrepareListener prepareListener;
     private OnloadListener loadListener;
@@ -44,9 +58,19 @@ public class Player {
     private OnCompleteListener completeListener;
     private YUVGLSurfaceView yuvglSurfaceView;
 
+    // 硬解参数
+    private MediaFormat mediaFormat;
+    private MediaCodec mediaCodec;
+    private Surface surface;
+    private MediaCodec.BufferInfo info;
+
 
     public void setSource(String source) {
         this.source = source;
+    }
+
+    public String getSource() {
+        return source;
     }
 
     public void setGlSurfaceView(YUVGLSurfaceView yuvglSurfaceView) {
@@ -113,10 +137,13 @@ public class Player {
     }
 
     public void stop() {
+        timeInfoBean = null;
+        duration = 0;
         new Thread(new Runnable() {
             @Override
             public void run() {
                 n_stop();
+                releaseMediaCodec();
             }
         }).start();
     }
@@ -132,6 +159,9 @@ public class Player {
         stop();
     }
 
+    public int getDuration() {
+        return duration;
+    }
 
     public void onCallPrepared() {
         if (prepareListener != null) {
@@ -150,6 +180,7 @@ public class Player {
             if (timeInfoBean == null) {
                 timeInfoBean = new TimeInfoBean();
             }
+            duration = totalTime;
             timeInfoBean.setCurrentTime(currentTime);
             timeInfoBean.setTotalTime(totalTime);
             timeInfoListener.onTimeInfo(timeInfoBean);
@@ -181,9 +212,95 @@ public class Player {
 
     public void onCallRenderYUV(int w, int h, byte[] y, byte[] u, byte[] v) {
         if (yuvglSurfaceView != null) {
+            yuvglSurfaceView.getYuvRender().setRenderType(YUVRender.RENDER_YUV);
             yuvglSurfaceView.setYUVData(w, h, y, u, v);
         }
     }
+
+    // ------------------ 硬解 提供給c层调用的方法 start ----------------------------
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    public boolean onCallIsSupportMediaCodec(String ffcodecName) {
+        return MediaCodecUtils.isSupportCodec(ffcodecName);
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    public void onCallInitMediaCodec(String codecName, int w, int h, byte[] csd_0, byte[] csd_1) {
+        if (surface != null) {
+            yuvglSurfaceView.getYuvRender().setRenderType(YUVRender.RENDER_MEDIACODEC);
+
+            String mine = MediaCodecUtils.findVideoCodecName(codecName);
+            mediaFormat = MediaFormat.createVideoFormat(mine, w, h);
+            mediaFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, w * h);
+            mediaFormat.setByteBuffer("csd-0",ByteBuffer.wrap(csd_0));// pps
+            mediaFormat.setByteBuffer("csd-1",ByteBuffer.wrap(csd_1));// fps
+            PlayerLog.d("mediaFormat： "+mediaFormat.toString());
+
+            try {
+                mediaCodec = MediaCodec.createDecoderByType(mine);
+
+                info = new MediaCodec.BufferInfo();
+                mediaCodec.configure(mediaFormat, surface, null, 0);
+                mediaCodec.start();// 開始解碼
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            if (errorListener != null) {
+                errorListener.onError(2001, "surface is null");
+            }
+        }
+    }
+
+    private ByteBuffer getInputBuffer(MediaCodec codec, int index) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            return codec.getInputBuffer(index);
+        } else {
+            return codec.getInputBuffers()[index];
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    public void onCallDecodeAVPacket(int dataSize, byte[] data) {
+        if (surface != null && mediaCodec != null && dataSize > 0 && data != null) {
+            try {
+                int inputBufferIndex = mediaCodec.dequeueInputBuffer(10);
+                if (inputBufferIndex >= 0) {
+                    ByteBuffer buffer = getInputBuffer(mediaCodec, inputBufferIndex);
+                    buffer.clear();
+                    buffer.put(data);
+                    mediaCodec.queueInputBuffer(inputBufferIndex, 0, dataSize, 0, 0);
+                }
+                // 输入一个可能取出多个
+                int outputBufferIndex = mediaCodec.dequeueOutputBuffer(info, 10);
+                while (outputBufferIndex > 0) {
+                    mediaCodec.releaseOutputBuffer(outputBufferIndex, true);
+                    outputBufferIndex = mediaCodec.dequeueOutputBuffer(info, 10);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    public void releaseMediaCodec() {
+        if (mediaCodec != null) {
+            try {
+                mediaCodec.flush();
+                mediaCodec.stop();
+                mediaCodec.release();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            mediaCodec = null;
+            mediaFormat = null;
+            info = null;
+        }
+    }
+
+    // ------------------ 硬解 提供給c层调用的方法 end ----------------------------
 
 
     private native void n_prepared(String source);

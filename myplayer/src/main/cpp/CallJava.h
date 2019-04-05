@@ -22,6 +22,12 @@ class CallJava {
     jmethodID jmid_timeinfo;
     jmethodID jmid_error;
     jmethodID jmid_complete;
+    jmethodID jmid_renderyuv;
+
+    // 硬解
+    jmethodID jmid_supportvideo;
+    jmethodID jmid_initmediacodec;
+    jmethodID jmid_decodeavpacket;
 
 public:
     CallJava(JavaVM *javaVM, JNIEnv *jniEnv, jobject jobj);
@@ -37,6 +43,15 @@ public:
     void onCallError(int type, int code, char *msg);
 
     void onCallComplete(int type);
+
+    void onCallRenderYUV(int width, int height, uint8_t *fy, uint8_t *fu, uint8_t *fv);
+
+    bool onCallIsSupportVideo(const char *ffcodecName);
+
+    void onCallInitMediaCodec(const char *mine, int width, int height, int csd0_size, int csd1_size,
+                              uint8_t *csd_0, uint8_t *csd_1);
+
+    void onCallDecodeAVPacket(int dataSize, uint8_t *packetData);
 };
 
 

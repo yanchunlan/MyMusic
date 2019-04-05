@@ -7,13 +7,15 @@
 
 class PlayStatus {
 public:
-    bool exit;
+    bool exit= false;
     bool load = true;
     bool seek = false;
+    bool pause = false;
 
 public:
     PlayStatus();
 
+    virtual ~PlayStatus();
 };
 
 #endif //MYMUSIC_PLAYSTATUS_H

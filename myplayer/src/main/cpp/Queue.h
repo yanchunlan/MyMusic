@@ -32,6 +32,7 @@ public:
 
     void clearAVPacket();
 
+    void noticeQueue();
 };
 
 #endif //MYMUSIC_QUEUE_H

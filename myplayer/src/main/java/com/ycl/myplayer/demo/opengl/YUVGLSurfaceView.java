@@ -22,6 +22,13 @@ public class YUVGLSurfaceView extends GLSurfaceView {
         yuvRender = new YUVRender(context);
         setRenderer(yuvRender);
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+
+        yuvRender.setOnFrameAvailableListener(new YUVRender.OnFrameAvailableListener() {
+            @Override
+            public void onFrameAvailable() {
+                requestRender();
+            }
+        });
     }
 
     public void setYUVData(int w, int h, byte[] y, byte[] u, byte[] v) {
@@ -29,5 +36,9 @@ public class YUVGLSurfaceView extends GLSurfaceView {
             yuvRender.setYUVRenderData(w, h, y, u, v);
             requestRender();
         }
+    }
+
+    public YUVRender getYuvRender() {
+        return yuvRender;
     }
 }

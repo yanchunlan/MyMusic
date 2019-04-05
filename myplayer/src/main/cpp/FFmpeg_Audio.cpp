@@ -139,6 +139,9 @@ void FFmpeg_Audio::start() {
         }
     }
 
+    video->audio = audio;
+
+
 
     audio->play();
     video->play();

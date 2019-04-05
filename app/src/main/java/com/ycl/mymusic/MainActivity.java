@@ -2,12 +2,13 @@ package com.ycl.mymusic;
 
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.ycl.myplayer.demo.Demo;
@@ -25,11 +26,9 @@ import com.ycl.myplayer.demo.utils.TimeUtils;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String TAG = "MainActivity";
-    private Demo mDemo;
-    private Player mPlayer;
-
-
     private TextView mSampleText;
+    private YUVGLSurfaceView mYuvGlSurfaceView;
+    private SeekBar mSeekBar;
     private Button mStart;
     private Button mStop;
     private Button mPause;
@@ -37,7 +36,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button mSeek;
     private Button mNext;
     private TextView mTime;
-    private YUVGLSurfaceView mYuvGlSurfaceView;
+
+    private Demo mDemo;
+    private Player mPlayer;
+
+    // seek
+    private int position; // 记录滑动的时间值
+    private boolean seek = false;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,7 +56,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void init() {
         // 测试
         mDemo = new Demo();
-        Log.d(TAG, "init: " + mDemo.testFfmpeg());
+//        Log.d(TAG, "init: " + mDemo.testFfmpeg());
         mSampleText.setText(mDemo.stringFromJNI());
 
         // 解码
@@ -110,9 +116,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 PlayerLog.d(" 播放完成了 onComplete");
             }
         });
+
+        mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                position = progress * mPlayer.getDuration() / 100;
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                seek = true;
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                mPlayer.seek(position);
+                seek = false;
+            }
+        });
     }
 
     private void initView() {
+        mYuvGlSurfaceView = (YUVGLSurfaceView) findViewById(R.id.yuvGlSurfaceView);
+        mSeekBar = (SeekBar) findViewById(R.id.seekbar);
         mSampleText = (TextView) findViewById(R.id.sample_text);
         mStart = (Button) findViewById(R.id.start);
         mStop = (Button) findViewById(R.id.stop);
@@ -127,18 +153,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mStop.setOnClickListener(this);
         mSeek.setOnClickListener(this);
         mNext.setOnClickListener(this);
-        mYuvGlSurfaceView = (YUVGLSurfaceView) findViewById(R.id.yuvGlSurfaceView);
-        mYuvGlSurfaceView.setOnClickListener(this);
     }
 
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.start:
-//              mPlayer.setSource("/storage/emulated/0/1.mp3");
+//                mPlayer.setSource("/storage/emulated/0/1.mp3");
 //                mPlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
 //                mPlayer.setSource("http://ngcdn004.cnr.cn/live/dszs/index.m3u8");
-                mPlayer.setSource("/storage/emulated/0/input1.mp4");
+                mPlayer.setSource(Environment.getExternalStorageDirectory().getAbsolutePath() + "/input1.mp4");
                 mPlayer.prepared();
                 break;
             case R.id.pause:
@@ -173,6 +197,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 TimeInfoBean timeInfoBean = (TimeInfoBean) msg.obj;
                 mTime.setText(TimeUtils.secdsToDateFormat(timeInfoBean.getTotalTime(), timeInfoBean.getTotalTime()) + "/" +
                         TimeUtils.secdsToDateFormat(timeInfoBean.getCurrentTime(), timeInfoBean.getTotalTime()));
+
+                // 滑动进度就停止更新位置
+                if (!seek && timeInfoBean.getTotalTime() > 0) {
+                    mSeekBar.setProgress(timeInfoBean.getCurrentTime() * 100 / timeInfoBean.getTotalTime());
+                }
             }
         }
     };

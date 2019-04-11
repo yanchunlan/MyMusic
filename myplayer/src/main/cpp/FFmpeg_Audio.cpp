@@ -159,13 +159,14 @@ void FFmpeg_Audio::start() {
     supportMediaCodec = false;
     video->audio = audio;
 
-    // 判断是硬解码还是软解码
+    // 判断是硬解码还是软解码 ， 得到视频解码类型
     char *codecName = reinterpret_cast<char *>((AVCodec *) (video->avCodecContext->codec)->name);
     if (supportMediaCodec = callJava->onCallIsSupportVideo(codecName)) {
         // 初始化bsFilter
         // video -> abs_ctx
         // video->abs_ctx -> time_base_in
         LOGE("当前设备支持硬解码当前视频");
+        // 添加解码头的过滤器
         if (strcasecmp(codecName, "h264") == 0) {
             bsFilter = av_bsf_get_by_name("h264_mp4toannexb");
         } else if (strcasecmp(codecName, "h265") == 0) {
@@ -302,9 +303,9 @@ void FFmpeg_Audio::release() {
         LOGE("开始释放Ffmpe");
     }
 
-    if (playStatus->exit) {
-        return;
-    }
+//    if (playStatus->exit) {
+//        return;
+//    }
     if (LOG_DEBUG) {
         LOGE("开始释放Ffmpe2");
     }
@@ -343,9 +344,9 @@ void FFmpeg_Audio::release() {
         delete (video);
         video = NULL;
     }
-    if (bsFilter != NULL) {
-        bsFilter = NULL;
-    }
+//    if (bsFilter != NULL) {
+//        bsFilter = NULL;
+//    }
 
     if (LOG_DEBUG) {
         LOGE("释放 封装格式上下文");

@@ -142,6 +142,7 @@ Java_com_ycl_myplayer_demo_player_Player_n_1stop(JNIEnv *env, jobject instance) 
 
     if (fFmpeg_audio != NULL) {
         fFmpeg_audio->release();
+        pthread_join(pthread_start, NULL);
         delete (fFmpeg_audio);
         fFmpeg_audio = NULL;
         if (callJava != NULL) {

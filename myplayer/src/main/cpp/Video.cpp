@@ -64,10 +64,10 @@ void *playVideo(void *data) {
                 continue;
             }
             // 从过滤器中 receivePacket
-            while (av_bsf_receive_packet(video->abs_ctx, avPacket) != 0) {
-                LOGE("开始硬解码");
+            while (av_bsf_receive_packet(video->abs_ctx, avPacket) == 0) {
+//                LOGE("开始硬解码");
                 double diff = video->getFrameDiffTime(NULL, avPacket);
-                LOGE("diff is %f", diff); //用于观察，当前视频延时率高不高
+//                LOGE("diff is %f", diff); //用于观察，当前视频延时率高不高
 
                 av_usleep(video->getDelayTime(diff * 1000000));
                 video->callJava->onCallDecodeAVPacket(avPacket->size, avPacket->data);
@@ -289,7 +289,7 @@ double Video::getDelayTime(double diff) {
         delayTime = defaultDelayTime;
     }
 
-    LOGE("delayTime is %f", delayTime);
+//    LOGE("delayTime is %f", delayTime);
 
     return delayTime;
 }

@@ -75,6 +75,16 @@ public class Player {
 
     public void setGlSurfaceView(YUVGLSurfaceView yuvglSurfaceView) {
         this.yuvglSurfaceView = yuvglSurfaceView;
+        yuvglSurfaceView.getYuvRender().setOnSurfaceCreateListener(new YUVRender.OnSurfaceCreateListener() {
+            @Override
+            public void onSurfaceCreate(Surface s) {
+                // 获取到编码Codec的surfaceView
+                if (surface == null) {
+                    surface = s;
+                    PlayerLog.d("onSurfaceCreate");
+                }
+            }
+        });
     }
 
     public void setPrepareListener(OnPrepareListener prepareListener) {
@@ -106,12 +116,7 @@ public class Player {
             PlayerLog.d("source is empty");
             return;
         }
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                n_prepared(source);
-            }
-        }).start();
+        n_prepared(source);
     }
 
     public void start() {
@@ -232,9 +237,9 @@ public class Player {
             String mine = MediaCodecUtils.findVideoCodecName(codecName);
             mediaFormat = MediaFormat.createVideoFormat(mine, w, h);
             mediaFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, w * h);
-            mediaFormat.setByteBuffer("csd-0",ByteBuffer.wrap(csd_0));// pps
-            mediaFormat.setByteBuffer("csd-1",ByteBuffer.wrap(csd_1));// fps
-            PlayerLog.d("mediaFormat： "+mediaFormat.toString());
+            mediaFormat.setByteBuffer("csd-0", ByteBuffer.wrap(csd_0));// pps
+            mediaFormat.setByteBuffer("csd-1", ByteBuffer.wrap(csd_1));// fps
+            PlayerLog.d("mediaFormat： " + mediaFormat.toString());
 
             try {
                 mediaCodec = MediaCodec.createDecoderByType(mine);
@@ -242,8 +247,8 @@ public class Player {
                 info = new MediaCodec.BufferInfo();
                 mediaCodec.configure(mediaFormat, surface, null, 0);
                 mediaCodec.start();// 開始解碼
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
+//                e.printStackTrace();
             }
         } else {
             if (errorListener != null) {
@@ -273,7 +278,7 @@ public class Player {
                 }
                 // 输入一个可能取出多个
                 int outputBufferIndex = mediaCodec.dequeueOutputBuffer(info, 10);
-                while (outputBufferIndex > 0) {
+                while (outputBufferIndex >= 0) {
                     mediaCodec.releaseOutputBuffer(outputBufferIndex, true);
                     outputBufferIndex = mediaCodec.dequeueOutputBuffer(info, 10);
                 }
@@ -291,7 +296,7 @@ public class Player {
                 mediaCodec.stop();
                 mediaCodec.release();
             } catch (Exception e) {
-                e.printStackTrace();
+//                e.printStackTrace();
             }
 
             mediaCodec = null;

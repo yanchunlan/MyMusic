@@ -249,7 +249,7 @@ public class YUVRender implements GLSurfaceView.Renderer, SurfaceTexture.OnFrame
         this.onFrameAvailableListener = onFrameAvailableListener;
     }
 
-    private interface OnSurfaceCreateListener {
+    public interface OnSurfaceCreateListener {
         void onSurfaceCreate(Surface surface);
     }
 

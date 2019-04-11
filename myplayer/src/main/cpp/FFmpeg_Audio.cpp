@@ -47,7 +47,7 @@ int avformat_callback(void *ctx) {
 void FFmpeg_Audio::decodeFFmpegThread() {
     pthread_mutex_lock(&init_mutex);
 
-    av_register_all(); // ffmpeg 4.0之后可以省略
+//    av_register_all(); // ffmpeg 4.0之后可以省略
 
     avformat_network_init();
     avFormatContext = avformat_alloc_context();
@@ -166,7 +166,7 @@ void FFmpeg_Audio::start() {
         // video -> abs_ctx
         // video->abs_ctx -> time_base_in
         LOGE("当前设备支持硬解码当前视频");
-        // 添加解码头的过滤器
+        // 找到添加解码头的过滤器 bsFilter
         if (strcasecmp(codecName, "h264") == 0) {
             bsFilter = av_bsf_get_by_name("h264_mp4toannexb");
         } else if (strcasecmp(codecName, "h265") == 0) {
@@ -344,9 +344,9 @@ void FFmpeg_Audio::release() {
         delete (video);
         video = NULL;
     }
-//    if (bsFilter != NULL) {
-//        bsFilter = NULL;
-//    }
+    if (bsFilter != NULL) {
+        bsFilter = NULL;
+    }
 
     if (LOG_DEBUG) {
         LOGE("释放 封装格式上下文");

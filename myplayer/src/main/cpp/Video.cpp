@@ -57,7 +57,7 @@ void *playVideo(void *data) {
 
         if (video->codecType == CODEC_MEDIACODEC) { // 硬解码
             // 过滤器 sendPacket
-            if (av_bsf_send_packet(video->abs_ctx, avPacket)!=0) {
+            if (av_bsf_send_packet(video->abs_ctx, avPacket) != 0) {
                 av_packet_free(&avPacket);
                 av_free(avPacket);
                 avPacket = NULL;
@@ -235,9 +235,8 @@ void Video::release() {
 double Video::getFrameDiffTime(AVFrame *avFrame, AVPacket *avPacket) {
     double pts = 0;
     if (avFrame != NULL) {
-        pts = av_frame_get_best_effort_timestamp(avFrame);
-        // ffmpeg 4.0 之后使用pts
-//        pts = avFrame->pts;
+//        pts = av_frame_get_best_effort_timestamp(avFrame);
+        pts = avFrame->pts; // ffmpeg 4.0 之后使用pts
     }
     if (avPacket != NULL) {
         pts = avPacket->pts;
@@ -257,22 +256,16 @@ double Video::getFrameDiffTime(AVFrame *avFrame, AVPacket *avPacket) {
 double Video::getDelayTime(double diff) {
     if (diff > 0.003) { // 减少睡眠时间
         delayTime = delayTime * 2 / 3;
-        if(delayTime < defaultDelayTime / 2)
-        {
+        if (delayTime < defaultDelayTime / 2) {
             delayTime = defaultDelayTime * 2 / 3;
-        }
-        else if(delayTime > defaultDelayTime * 2)
-        {
+        } else if (delayTime > defaultDelayTime * 2) {
             delayTime = defaultDelayTime * 2;
         }
     } else if (diff < -0.003) { // 增加睡眠时间
         delayTime = delayTime * 3 / 2;
-        if(delayTime < defaultDelayTime / 2)
-        {
+        if (delayTime < defaultDelayTime / 2) {
             delayTime = defaultDelayTime * 2 / 3;
-        }
-        else if(delayTime > defaultDelayTime * 2)
-        {
+        } else if (delayTime > defaultDelayTime * 2) {
             delayTime = defaultDelayTime * 2;
         }
 
